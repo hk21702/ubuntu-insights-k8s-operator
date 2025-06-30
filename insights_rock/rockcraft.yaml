@@ -1,0 +1,65 @@
+name: ubuntu-insights-server
+
+base: ubuntu@24.04
+version: "0.1.0"
+license: GPL-3.0
+summary: Service for ubuntu-insights
+description: |
+    Ubuntu Insights server services used for accepting HTTP requests with insights reports from clients, validating them, and inserting them into a
+    database. This service is part of the Ubuntu Insights project, a transparent, user-friendly, open,
+    platform-agnostic, and cross-application solution for reporting hardware information and other collected metrics.
+platforms:
+    amd64:
+
+run-user: _daemon_ # setting a non-root user for the rock
+
+parts:
+    web-service:
+        plugin: go
+        source: https://github.com/ubuntu/ubuntu-insights.git
+        source-tag: v0.1.0
+        source-subdir: server/cmd/web-service
+        build-snaps:
+            - go/1.24/stable
+        build-environment:
+            - GOTOOLCHAIN: local
+        override-build: |
+            go build \
+                -ldflags "-X 'github.com/ubuntu/ubuntu-insights/server/internal/common/constants.Version=$CRAFT_PROJECT_VERSION'" \
+                -o=ubuntu-insights-web-service \
+                server/cmd/web-service/main.go
+        override-stage: |
+            mkdir -p ${CRAFT_PART_INSTALL}/bin
+            install -m 0755 "${CRAFT_PART_BUILD}/ubuntu-insights-web-service" "${CRAFT_PART_INSTALL}/bin/ubuntu-insights-web-service"
+
+            craftctl default
+
+    ingest-service:
+        plugin: go
+        source: https://github.com/ubuntu/ubuntu-insights.git
+        source-tag: v0.1.0
+        source-subdir: server/cmd/ingest-service
+        build-snaps:
+            - go/1.24/stable
+        build-environment:
+            - GOTOOLCHAIN: local
+        override-build: |
+            go build \
+                -ldflags "-X 'github.com/ubuntu/ubuntu-insights/server/internal/common/constants.Version=$CRAFT_PROJECT_VERSION'"\
+                -o=ubuntu-insights-ingest-service \
+                server/cmd/ingest-service/main.go
+        override-stage: |
+            mkdir -p ${CRAFT_PART_INSTALL}/bin
+            install -m 0755 "${CRAFT_PART_BUILD}/ubuntu-insights-ingest-service" "${CRAFT_PART_INSTALL}/bin/ubuntu-insights-ingest-service"
+
+            craftctl default
+
+    migrations:
+        plugin: dump
+        source: https://github.com/ubuntu/ubuntu-insights.git
+        source-tag: v0.1.0
+        source-subdir: server/migrations
+        organize:
+            "*": usr/share/insights/migrations/
+        stage:
+            - usr/share/insights/migrations/*
