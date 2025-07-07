@@ -50,6 +50,16 @@ def juju(request: pytest.FixtureRequest):
 
 
 @pytest.fixture(scope="session")
+def image(metadata: Dict[str, Any], pytestconfig: pytest.Config):
+    """Pytest fixture to return the Ubuntu Insights server image."""
+    image = pytestconfig.getoption("--ubuntu-insights-server-image")
+    if not image:
+        image = metadata["resources"]["ubuntu-insights-server-image"]["upstream-source"]
+    assert image, "Ubuntu Insights server image must be specified"
+    yield image
+
+
+@pytest.fixture(scope="session")
 def charm_file(metadata: Dict[str, Any], pytestconfig: pytest.Config):
     """Pytest fixture to pack the charm and return the filename, or --charm-file if set."""
     charm_file = pytestconfig.getoption("--charm-file")
@@ -76,23 +86,17 @@ def charm_file(metadata: Dict[str, Any], pytestconfig: pytest.Config):
 
 
 @pytest.fixture(scope="module")
-def app(
-    juju: jubilant.Juju, metadata: Dict[str, Any], charm_file: str, pytestconfig: pytest.Config
-):
+def app(juju: jubilant.Juju, metadata: Dict[str, Any], charm_file: str, image: str):
     app_name = metadata["name"]
 
     # Deploy postgres
     juju.deploy(
         charm="postgresql-k8s",
         channel="14/stable",
+        revision=300,
         trust=True,
         config={"profile": "testing"},
     )
-
-    image = pytestconfig.getoption("--ubuntu-insights-server-image")
-    if not image:
-        image = metadata["resources"]["ubuntu-insights-server-image"]["upstream-source"]
-    assert image, "Ubuntu Insights server image must be specified"
 
     resources = {
         "ubuntu-insights-server-image": image,
@@ -102,11 +106,7 @@ def app(
         charm=charm_file,
         app=app_name,
         resources=resources,
-        base="ubuntu@24.04",
     )
-
-    # Should be blocked waiting for database relation
-    juju.wait(lambda status: jubilant.all_blocked(status, app_name))
 
     # Wait for PostgreSQL to be ready
     juju.wait(lambda status: jubilant.all_active(status, "postgresql-k8s"))
@@ -121,13 +121,13 @@ def app(
 
 @pytest.fixture(scope="module")
 def insights_address(app: str, juju: jubilant.Juju):
-    """Fixture to get the address of the Ubuntu Insights web service (unit 0)."""
+    """Fixture to get the address of the Ubuntu Insights web service."""
     port = juju.config(app)["web-port"]
     assert type(port) is int
 
     status = juju.status()
-    unit_ip = status.apps[app].units[app + "/0"].address
-    return f"http://{unit_ip}:{port}"
+    app_ip = status.apps[app].address
+    return f"http://{app_ip}:{port}"
 
 
 @pytest.fixture(scope="session")

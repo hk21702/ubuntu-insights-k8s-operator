@@ -1,7 +1,7 @@
 [project]
 name = "ubuntu-insights-k8s-operator"
 dynamic = ["version"]
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 
 # Required group: these are all dependencies required to run the charm.
 dependencies = ["ops~=2.23", "requests"]
@@ -52,4 +52,4 @@ skip = "build,lib,venv,icon.svg,.tox,.git,.mypy_cache,.ruff_cache,.coverage"
 [tool.pyright]
 include = ["src/"]
 extraPaths = ["lib", "./src"]
-ignore = ["lib/charms/data_platform_libs/"]
+ignore = ["lib/charms/data_platform_libs/", "lib/charms/rolling_ops/"]

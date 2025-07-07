@@ -202,3 +202,35 @@ def test_config_changed(
         == 403
         and jubilant.all_active(status, app)
     )
+
+
+def test_upgrade(
+    app: str,
+    juju: jubilant.Juju,
+    charm_file: str,
+    image: str,
+    insights_address: str,
+    requests_timeout: float,
+):
+    juju.add_unit(app, num_units=2)
+    juju.wait(jubilant.all_active)
+
+    resources = {
+        "ubuntu-insights-server-image": image,
+    }
+
+    host = app
+
+    def ping_web_service():
+        response = requests.get(f"{insights_address}/version", timeout=requests_timeout)
+        return response.status_code == 200
+
+    assert ping_web_service()
+    juju.refresh(app, path=charm_file, resources=resources)
+
+    juju.wait(
+        lambda status: ping_web_service()
+        and jubilant.all_agents_idle(status, host)
+        and jubilant.all_active(status, app),
+        successes=15,
+    )

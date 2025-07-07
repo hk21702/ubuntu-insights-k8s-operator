@@ -16,6 +16,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseEndpointsChangedEvent,
     DatabaseRequires,
 )
+from charms.rolling_ops.v0.rollingops import RollingOpsManager
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
         self.container = self.unit.get_container(CONTAINER_NAME)
 
         self.framework.observe(self.on.start, self._on_pebble_ready)
+        self.framework.observe(self.on.upgrade_charm, self._on_upgrade_charm)
         self.framework.observe(self.on.ubuntu_insights_server_pebble_ready, self._on_pebble_ready)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.collect_unit_status, self._on_collect_status)
@@ -100,6 +102,10 @@ class UbuntuInsightsCharm(ops.CharmBase):
         )
         self.framework.observe(
             self.on.reports_cache_storage_detaching, self._on_storage_state_changed
+        )
+
+        self.restart_manager = RollingOpsManager(
+            charm=self, relation="restart", callback=self._on_restart
         )
 
     def _on_collect_status(self, event: ops.CollectStatusEvent) -> None:
@@ -138,6 +144,14 @@ class UbuntuInsightsCharm(ops.CharmBase):
 
         event.add_status(ops.ActiveStatus())
 
+    def _on_pebble_ready(self, event: ops.PebbleReadyEvent) -> None:
+        self._on_config_changed(event)
+
+    def _on_upgrade_charm(self, _: ops.EventBase) -> None:
+        """Handle charm upgrade events."""
+        assert type(self.restart_manager.name) is str
+        self.on[self.restart_manager.name].acquire_lock.emit()
+
     def _on_config_changed(self, _: ops.EventBase) -> None:
         """Handle configuration changes."""
         self.web_apps = [item.strip() for item in str(self.config["web-apps"]).split(",")]
@@ -155,11 +169,11 @@ class UbuntuInsightsCharm(ops.CharmBase):
         ):
             self._execute_migrations()
 
+        # Expose web service port
+        self.unit.set_ports(typing.cast(int, self.config["web-port"]))
+
         # Restart the services to apply the new configurations.
         self._update_layer_and_replan()
-
-    def _on_pebble_ready(self, event: ops.PebbleReadyEvent) -> None:
-        self._on_config_changed(event)
 
     @property
     def ingest_environment(self) -> dict[str, str]:
@@ -213,6 +227,10 @@ class UbuntuInsightsCharm(ops.CharmBase):
     def _on_database_relation_broken(self, _: ops.RelationBrokenEvent) -> None:
         """Handle the database relation being broken."""
         self._stop_service(ServiceType.INGEST)
+
+    def _on_restart(self, event: ops.EventBase) -> None:
+        """Handle rolling restart requests."""
+        self._on_config_changed(event)
 
     def _update_layer_and_replan(self) -> None:
         ops.MaintenanceStatus("Assembling Pebble layers")
@@ -288,6 +306,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
             legacy = self.config["ingest-legacy"]
 
         if legacy:
+            allowlist = allowlist.copy() # Make sure the original list is not modified
             allowlist.extend(
                 f"ubuntu-report/ubuntu/desktop/{version}" for version in LEGACY_VERSIONS
             )
@@ -329,7 +348,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
         )
 
         pebble_layer: ops.pebble.LayerDict = {
-            "summary": "{APP_NAME} layer",
+            "summary": f"{APP_NAME} layer",
             "description": "pebble config layer for Ubuntu Insights server services",
             "services": {
                 ServiceType.WEB.value: {

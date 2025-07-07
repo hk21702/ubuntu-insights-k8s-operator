@@ -29,6 +29,8 @@ assumes:
 charm-libs:
   - lib: data_platform_libs.data_interfaces
     version: "0"
+  - lib: rolling_ops.rollingops
+    version: "0"
 
 parts:
   charm:
@@ -96,3 +98,7 @@ resources:
   ubuntu-insights-server-image:
     type: oci-image
     description: The Ubuntu Insights server services OCI image.
+
+peers:
+    restart:
+        interface: rolling_op

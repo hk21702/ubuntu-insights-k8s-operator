@@ -201,3 +201,16 @@ def test_storage_attached():
         f"ubuntu-insights-web-service --listen-port=8080 "
         f"--daemon-config={WEB_DYNAMIC_PATH} --reports-dir={REPORTS_CACHE_MOUNT_LOCATION}"
     )
+
+
+def test_open_port():
+    ctx = testing.Context(UbuntuInsightsCharm)
+    container = testing.Container(name=CONTAINER_NAME, can_connect=True)
+
+    state_in = testing.State(
+        containers={container},
+        config={"web-port": 8001},
+    )
+
+    state_out = ctx.run(ctx.on.config_changed(), state_in)
+    assert state_out.opened_ports == {testing.TCPPort(8001)}
