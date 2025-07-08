@@ -12,6 +12,11 @@ logger = logging.getLogger(__name__)
 
 def pytest_addoption(parser: pytest.Parser):
     parser.addoption(
+        "--model",
+        action="store",
+    )
+
+    parser.addoption(
         "--keep-models",
         action="store_true",
         default=False,
@@ -39,6 +44,13 @@ def juju(request: pytest.FixtureRequest):
         if request.session.testsfailed:
             log = juju.debug_log(limit=1000)
             print(log, end="")
+
+    model = request.config.getoption("--model")
+    if model:
+        juju = jubilant.Juju(model=model)
+        yield juju
+        show_debug_log(juju)
+        return
 
     keep_models = bool(request.config.getoption("--keep-models"))
     with jubilant.temp_model(keep=keep_models) as juju:
