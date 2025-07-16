@@ -39,7 +39,6 @@ INGEST_DATABASE_NAME = "insights"
 DATABASE_RELATION_NAME = "database"
 
 MIGRATIONS_PATH = "/usr/share/insights/migrations"
-MIGRATIONS_DONE_FLAG = "/run/ubuntu-insights-k8s-operator/migrations_done"
 
 LEGACY_VERSIONS = {
     "18.04",
@@ -139,9 +138,6 @@ class UbuntuInsightsCharm(ops.CharmBase):
                     ops.MaintenanceStatus("Waiting for the ingest service to start up")
                 )
 
-        if self.config["migrate"] and not self._is_migrations_done():
-            event.add_status(ops.MaintenanceStatus("Waiting for database migrations to complete"))
-
         event.add_status(ops.ActiveStatus())
 
     def _on_pebble_ready(self, event: ops.PebbleReadyEvent) -> None:
@@ -162,11 +158,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
         self._render_dynamic_config(ServiceType.INGEST)
 
         # Migrate the database if the database relation is created.
-        if (
-            self.model.get_relation(DATABASE_RELATION_NAME)
-            and self.config["migrate"]
-            and not self._is_migrations_done()
-        ):
+        if self.model.get_relation(DATABASE_RELATION_NAME) and self.config["migrate"]:
             self._execute_migrations()
 
         # Expose web service port
@@ -215,12 +207,10 @@ class UbuntuInsightsCharm(ops.CharmBase):
         return container_meta.mounts[REPORTS_CACHE_NAME].location
 
     def _on_database_created(self, _: DatabaseCreatedEvent) -> None:
-        self._mark_migrations(done=False)
         self._execute_migrations()
         self._update_layer_and_replan()
 
     def _on_database_endpoints_changed(self, _: DatabaseEndpointsChangedEvent) -> None:
-        self._mark_migrations(done=False)
         self._execute_migrations()
         self._update_layer_and_replan()
 
@@ -306,7 +296,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
             legacy = self.config["ingest-legacy"]
 
         if legacy:
-            allowlist = allowlist.copy() # Make sure the original list is not modified
+            allowlist = allowlist.copy()  # Make sure the original list is not modified
             allowlist.extend(
                 f"ubuntu-report/ubuntu/desktop/{version}" for version in LEGACY_VERSIONS
             )
@@ -416,8 +406,6 @@ class UbuntuInsightsCharm(ops.CharmBase):
                 logger.exception("    %s", line)
             return
 
-        self._mark_migrations(done=True)
-
     def _stop_service(self, service: ServiceType) -> None:
         """Stop a service in the container."""
         if (
@@ -431,25 +419,6 @@ class UbuntuInsightsCharm(ops.CharmBase):
                 self.container.stop(service.value)
             except ops.pebble.APIError as e:
                 logger.error("Failed to stop %s service: %s", service.value, e)
-
-    def _is_migrations_done(self) -> bool:
-        """Check if migrations have been done."""
-        return self.container.can_connect() and self.container.exists(MIGRATIONS_DONE_FLAG)
-
-    def _mark_migrations(self, done: bool) -> None:
-        """Mark migrations as done."""
-        if not self.container.can_connect():
-            return
-
-        try:
-            if done:
-                self.container.push(MIGRATIONS_DONE_FLAG, "", make_dirs=True)
-                logger.info("Marked migrations as done")
-            else:
-                self.container.remove_path(MIGRATIONS_DONE_FLAG, recursive=True)
-                logger.info("Removed migrations done marker")
-        except ops.pebble.APIError as e:
-            logger.error("Failed to mark migrations: %s", e)
 
 
 if __name__ == "__main__":
