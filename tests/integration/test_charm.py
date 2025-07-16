@@ -19,6 +19,7 @@ def test_active(app: str, juju: jubilant.Juju):
     """
     status = juju.status()
     assert status.apps[app].units[app + "/0"].is_active
+    assert status.apps[app].units[app + "/1"].is_active
 
 
 def test_web_service_running(insights_address: str, requests_timeout: float):
@@ -213,7 +214,7 @@ def test_upgrade(
     insights_address: str,
     requests_timeout: float,
 ):
-    juju.add_unit(app, num_units=2)
+    juju.add_unit(app)
     juju.wait(jubilant.all_active)
 
     resources = {
