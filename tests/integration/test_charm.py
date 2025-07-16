@@ -174,6 +174,7 @@ def test_database_relations(
     juju.remove_relation(app, "postgresql-k8s:database")
     juju.wait(jubilant.any_blocked)
     assert ping_web_service()
+    juju.wait(lambda status: jubilant.all_active(status, "postgresql-k8s"), successes=5)
 
     # Re-add database relation
     juju.integrate(app, "postgresql-k8s:database")
