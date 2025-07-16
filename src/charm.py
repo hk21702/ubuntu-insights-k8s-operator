@@ -332,7 +332,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
         """Pebble layer for the web service."""
         web_command = " ".join(
             [
-                "ubuntu-insights-web-service",
+                "/bin/ubuntu-insights-web-service",
                 f"--listen-port={self.config['web-port']}",
                 f"--daemon-config={WEB_DYNAMIC_PATH}",
                 f"--reports-dir={self.report_cache_path}",
@@ -341,7 +341,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
 
         ingest_command = " ".join(
             [
-                "ubuntu-insights-ingest-service",
+                "/bin/ubuntu-insights-ingest-service",
                 f"--daemon-config={INGEST_DYNAMIC_PATH}",
                 f"--reports-dir={self.report_cache_path}",
             ]
@@ -399,7 +399,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
         self.unit.status = ops.MaintenanceStatus("Running database migrations")
         try:
             process = self.container.exec(
-                ["ubuntu-insights-ingest-service", "migrate", MIGRATIONS_PATH],
+                ["/bin/ubuntu-insights-ingest-service", "migrate", MIGRATIONS_PATH],
                 environment=self.ingest_environment,
                 timeout=120,
             )

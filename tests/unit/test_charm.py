@@ -42,7 +42,7 @@ def test_pebble_layer():
                 "override": "replace",
                 "summary": "web service",
                 "command": (
-                    f"ubuntu-insights-web-service "
+                    f"/bin/ubuntu-insights-web-service "
                     f"--listen-port=8080 "
                     f"--daemon-config={WEB_DYNAMIC_PATH} "
                     f"--reports-dir={REPORTS_CACHE_MOUNT_LOCATION}"
@@ -53,7 +53,7 @@ def test_pebble_layer():
                 "override": "replace",
                 "summary": "ingest service",
                 "command": (
-                    f"ubuntu-insights-ingest-service "
+                    f"/bin/ubuntu-insights-ingest-service "
                     f"--daemon-config={INGEST_DYNAMIC_PATH} "
                     f"--reports-dir={REPORTS_CACHE_MOUNT_LOCATION}"
                 ),
@@ -198,7 +198,7 @@ def test_storage_attached():
     assert state_out.get_container(container.name).layers[container.name].services[
         ServiceType.WEB.value
     ].command == (
-        f"ubuntu-insights-web-service --listen-port=8080 "
+        f"/bin/ubuntu-insights-web-service --listen-port=8080 "
         f"--daemon-config={WEB_DYNAMIC_PATH} --reports-dir={REPORTS_CACHE_MOUNT_LOCATION}"
     )
 
