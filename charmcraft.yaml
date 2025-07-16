@@ -6,7 +6,7 @@ summary: Charm for Ubuntu Insights server components on Kubernetes.
 description: |
   A Juju charm for deploying and managing the Ubuntu Insights server components on Kubernetes.
 
-  This charm include two main service. A web-exposed service used for accepting HTTP requests with insights report payloads from clients, as well as an ingest service for validating accepted reports, and inserting them into a PostgreSQL database.
+  This charm include two main services. A web-exposed service used for accepting HTTP requests with insights report payloads from clients, as well as an ingest service for validating accepted reports, and inserting them into a PostgreSQL database.
 
   This charm is part of the Ubuntu Insights project, a transparent, user-friendly, open, platform-agnostic, and cross-application solution for reporting hardware information and other collected metrics.
 

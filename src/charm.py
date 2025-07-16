@@ -367,7 +367,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
 
     @property
     def version(self) -> str:
-        """Returns the current workload version via the web-service version endpoint."""
+        """Return the current workload version via the web-service version endpoint."""
         try:
             if self.container.get_services(ServiceType.WEB.value):
                 return self._request_version()
