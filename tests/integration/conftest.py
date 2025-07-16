@@ -105,7 +105,7 @@ def app(juju: jubilant.Juju, metadata: Dict[str, Any], charm_file: str, image: s
     juju.deploy(
         charm="postgresql-k8s",
         channel="14/stable",
-        revision=300,
+        revision=400,
         trust=True,
         config={"profile": "testing"},
     )
