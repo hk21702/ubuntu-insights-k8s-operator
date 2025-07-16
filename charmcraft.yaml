@@ -49,7 +49,7 @@ config:
       description: The host on which the web service will listen for HTTP requests.
     web-apps:
       type: string
-      default: "linux, windows, darwin, wsl_setup, ubuntu_desktop_provision"
+      default: "linux, windows, darwin, ubuntu_desktop_provision"
       description: Comma-separated list of applications for which the web service will accept reports.
 
     web-legacy:
@@ -60,7 +60,7 @@ config:
     # Ingest service configuration
     ingest-apps:
       type: string
-      default: "linux, windows, darwin, wsl_setup, ubuntu_desktop_provision"
+      default: "linux, windows, darwin, ubuntu_desktop_provision"
       description: Comma-separated list of applications for which the service will accept reports.
 
     ingest-legacy:
