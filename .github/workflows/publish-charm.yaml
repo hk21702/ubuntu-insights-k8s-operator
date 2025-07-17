@@ -1,0 +1,13 @@
+name: Publish charm to edge
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish-to-edge:
+    uses: canonical/operator-workflows/.github/workflows/publish_charm.yaml@main
+    secrets: inherit
+    with:
+      integration-test-workflow-file: integration-test.yaml
