@@ -312,10 +312,15 @@ class UbuntuInsightsCharm(ops.CharmBase):
         except (ops.pebble.APIError, ops.pebble.ConnectionError) as e:
             logger.error("Failed to write config file %s: %s", config_path, e)
 
-    def _on_storage_state_changed(self, event: ops.EventBase) -> None:
+    def _on_storage_state_changed(self, event: ops.StorageEvent) -> None:
         if self.report_cache_path:
             self._on_config_changed(event)
             return
+
+        # Storage is not available, stop the services.
+        logger.critical("Reports cache storage is not available, stopping workloads.")
+        self._stop_service(ServiceType.WEB)
+        self._stop_service(ServiceType.INGEST)
 
     @property
     def _pebble_layer(self) -> ops.pebble.Layer:
@@ -337,6 +342,15 @@ class UbuntuInsightsCharm(ops.CharmBase):
             ]
         )
 
+        # If the reports cache path is unavailable, disable the web and ingest services.
+        # If the database relation is not ready, disable the ingest service.
+        web_startup = "enabled" if self.report_cache_path else "disabled"
+        ingest_startup = (
+            "enabled"
+            if self.report_cache_path and self.fetch_postgres_relation_data()
+            else "disabled"
+        )
+
         pebble_layer: ops.pebble.LayerDict = {
             "summary": f"{APP_NAME} layer",
             "description": "pebble config layer for Ubuntu Insights server services",
@@ -345,13 +359,13 @@ class UbuntuInsightsCharm(ops.CharmBase):
                     "override": "replace",
                     "summary": "web service",
                     "command": web_command,
-                    "startup": "enabled",
+                    "startup": web_startup,
                 },
                 ServiceType.INGEST.value: {
                     "override": "replace",
                     "summary": "ingest service",
                     "command": ingest_command,
-                    "startup": "enabled" if self.fetch_postgres_relation_data() else "disabled",
+                    "startup": ingest_startup,
                     "environment": self.ingest_environment,
                 },
             },
