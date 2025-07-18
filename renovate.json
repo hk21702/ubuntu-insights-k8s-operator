@@ -1,9 +1,9 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": [
-        "config:recommended",
-        ":semanticCommits",
-        ":semanticCommitTypeAll(deps)",
-        ":semanticCommitScope(manager)"
-    ]
+        "config:recommended"
+    ],
+    "semanticCommits": "enabled",
+    "semanticCommitType": "deps",
+    "semanticCommitScope": "{{manager}}"
 }
