@@ -4,6 +4,5 @@
         "config:recommended",
         ":semanticCommits",
         ":semanticCommitTypeAll(deps)",
-        ":semanticCommitScope({{manager}})"
     ]
 }
