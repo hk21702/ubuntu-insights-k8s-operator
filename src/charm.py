@@ -14,9 +14,10 @@ import requests
 from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseCreatedEvent,
     DatabaseEndpointsChangedEvent,
-    DatabaseRequires,
 )
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
+
+from database import DatabaseHandler
 
 logger = logging.getLogger(__name__)
 
@@ -81,15 +82,14 @@ class UbuntuInsightsCharm(ops.CharmBase):
         self.framework.observe(self.on.collect_unit_status, self._on_collect_status)
 
         # The 'relation_name' comes from the 'charmcraft.yaml file'.
-        # The 'database_name' is the name of the database that our application requires.
-        self.database = DatabaseRequires(
-            self, relation_name=DATABASE_RELATION_NAME, database_name=INGEST_DATABASE_NAME
-        )
+        self._database = DatabaseHandler(self, DATABASE_RELATION_NAME)
 
         # See https://charmhub.io/data-platform-libs/libraries/data_interfaces
-        self.framework.observe(self.database.on.database_created, self._on_database_created)
         self.framework.observe(
-            self.database.on.endpoints_changed, self._on_database_endpoints_changed
+            self._database.database.on.database_created, self._on_database_created
+        )
+        self.framework.observe(
+            self._database.database.on.endpoints_changed, self._on_database_endpoints_changed
         )
         self.framework.observe(
             self.on[DATABASE_RELATION_NAME].relation_broken,
@@ -111,7 +111,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
         if not self.model.get_relation(DATABASE_RELATION_NAME):
             # We need the user to do 'juju integrate'.
             event.add_status(ops.BlockedStatus("Waiting for database relation"))
-        elif not self.fetch_postgres_relation_data():
+        elif not self._database.is_relation_ready():
             # We need the charms to finish integrating.
             event.add_status(ops.WaitingStatus("Waiting for database relation"))
 
@@ -158,7 +158,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
         self._render_dynamic_config(ServiceType.INGEST)
 
         # Migrate the database if the database relation is created.
-        if self.model.get_relation(DATABASE_RELATION_NAME) and self.config["migrate"]:
+        if self.config["migrate"]:
             self._execute_migrations()
 
         # Expose web service port
@@ -171,22 +171,20 @@ class UbuntuInsightsCharm(ops.CharmBase):
     def ingest_environment(self) -> dict[str, str]:
         """Environment variables for the ingest service."""
         key_prefix = "UBUNTU_INSIGHTS_INGEST_SERVICE_"
+        if not self._database.is_relation_ready():
+            return {}
 
-        db_data = self.fetch_postgres_relation_data()
+        db_data = self._database.get_relation_data()
         if not db_data:
             return {}
-        env = {
-            key: value
-            for key, value in {
-                f"{key_prefix}DBCONFIG_HOST": db_data.get("db_host", None),
-                f"{key_prefix}DBCONFIG_PORT": db_data.get("db_port", None),
-                f"{key_prefix}DBCONFIG_USER": db_data.get("db_username", None),
-                f"{key_prefix}DBCONFIG_PASSWORD": db_data.get("db_password", None),
-                f"{key_prefix}DBCONFIG_DBNAME": INGEST_DATABASE_NAME,
-            }.items()
-            if value is not None
+
+        return {
+            f"{key_prefix}DBCONFIG_HOST": db_data.host,
+            f"{key_prefix}DBCONFIG_PORT": db_data.port,
+            f"{key_prefix}DBCONFIG_USER": db_data.user,
+            f"{key_prefix}DBCONFIG_PASSWORD": db_data.password,
+            f"{key_prefix}DBCONFIG_DBNAME": db_data.db_name,
         }
-        return env
 
     @property
     def report_cache_path(self) -> str:
@@ -235,50 +233,6 @@ class UbuntuInsightsCharm(ops.CharmBase):
             return
 
         self.unit.set_workload_version(self.version)
-
-    def fetch_postgres_relation_data(self) -> dict[str, str]:
-        """Fetch postgres relation data.
-
-        This function retrieves relation data from a postgres database using
-        the `fetch_relation_data` method of the `database` object. The retrieved data is
-        then logged for debugging purposes, and any non-empty data is processed to extract
-        endpoint information, username, and password. This processed data is then returned as
-        a dictionary. If no data or incomplete data is found, an empty dictionary is returned.
-        """
-        relations = self.database.fetch_relation_data()
-        logger.debug("Got following database data: %s", relations)
-        for data in relations.values():
-            if not data:
-                continue
-            if not data.get("endpoints"):
-                # Database relation data is incomplete.
-                continue
-
-            endpoints = data["endpoints"].split(",")
-            if len(endpoints) < 1:
-                return {}
-
-            primary_endpoint = endpoints[0].split(":")
-            logger.info("New PSQL database endpoint is %s", primary_endpoint)
-
-            host, port = primary_endpoint
-            db_data = {
-                "db_host": host,
-                "db_port": port,
-                "db_username": data.get("username"),
-                "db_password": data.get("password"),
-                "db_name": data.get("database"),
-            }
-
-            if None in (
-                db_data["db_username"],
-                db_data["db_password"],
-                db_data["db_name"],
-            ):
-                return {}
-
-            return db_data
-        return {}
 
     def _render_dynamic_config(self, service_type: ServiceType) -> None:
         """Write dynamic configuration file for the specified service.
@@ -347,7 +301,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
         web_startup = "enabled" if self.report_cache_path else "disabled"
         ingest_startup = (
             "enabled"
-            if self.report_cache_path and self.fetch_postgres_relation_data()
+            if self.report_cache_path and self._database.is_relation_ready()
             else "disabled"
         )
 
@@ -396,7 +350,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
 
     def _execute_migrations(self) -> None:
         """Run database migrations."""
-        if not self.fetch_postgres_relation_data() or not self.container.can_connect():
+        if not self._database.is_relation_ready() or not self.container.can_connect():
             logger.info("Not ready to execute migrations.")
             return
 
