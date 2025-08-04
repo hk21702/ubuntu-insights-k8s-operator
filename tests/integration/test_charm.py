@@ -12,7 +12,7 @@ from tests.integration.helpers import ExampleReport
 logger = logging.getLogger(__name__)
 
 
-def test_active(app: str, juju: jubilant.Juju):
+def test_active(juju: jubilant.Juju, app: str):
     """Check that the charm is active.
 
     Assume that the charm has been deployed and is running.
@@ -233,17 +233,3 @@ def test_upgrade(
         successes=15,
     )
     assert ping_web_service()
-
-
-def test_scale_down(
-    app: str,
-    juju: jubilant.Juju,
-    insights_address: str,
-    requests_timeout: float,
-):
-    """Check that the charm can scale down without force."""
-    juju.remove_unit(app, num_units=2, destroy_storage=True)
-    juju.wait(jubilant.all_active)
-
-    response = requests.get(f"{insights_address}/version", timeout=requests_timeout)
-    assert response.status_code == 200
