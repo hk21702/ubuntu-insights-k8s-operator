@@ -57,7 +57,11 @@ class DatabaseHandler(Object):
             return DBData()
 
         relation_id = self.database.relations[0].id
-        relation_data = self.database.fetch_relation_data()[relation_id]
+        try:
+            relation_data = self.database.fetch_relation_data()[relation_id]
+        except Exception as e:
+            logger.warning("Error fetching relation data for %s: %s", self.relation_name, e)
+            return DBData()
 
         endpoints = relation_data.get("endpoints", "").split(",")
         primary_endpoint = endpoints[0].split(":")

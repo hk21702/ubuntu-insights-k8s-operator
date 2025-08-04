@@ -4,6 +4,8 @@
 import contextlib
 from unittest.mock import MagicMock, PropertyMock, patch
 
+from ops.model import ModelError
+
 from database import DatabaseHandler, DBData
 
 
@@ -44,6 +46,15 @@ def test_get_relation_data_no_endpoints():
         assert handler.get_relation_data() == DBData()
 
     with handler_with_mocked_relation({1: {"endpoints": ""}}, relation_id=1) as handler:
+        assert handler.get_relation_data() == DBData()
+
+
+def test_get_relation_data_fetch_exception():
+    """Test empty return when fetch_relation_data raises exception."""
+    with handler_with_mocked_relation({}, relation_id=1) as handler:
+        handler.database.fetch_relation_data = MagicMock(
+            side_effect=ModelError("permission denied")
+        )
         assert handler.get_relation_data() == DBData()
 
 
