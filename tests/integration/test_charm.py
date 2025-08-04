@@ -233,3 +233,17 @@ def test_upgrade(
         successes=15,
     )
     assert ping_web_service()
+
+
+def test_scale_down(
+    app: str,
+    juju: jubilant.Juju,
+    insights_address: str,
+    requests_timeout: float,
+):
+    """Check that the charm can scale down without force."""
+    juju.remove_unit(app, num_units=2, destroy_storage=True)
+    juju.wait(jubilant.all_active)
+
+    response = requests.get(f"{insights_address}/version", timeout=requests_timeout)
+    assert response.status_code == 200
