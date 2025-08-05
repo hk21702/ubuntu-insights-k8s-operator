@@ -10,28 +10,6 @@ import yaml
 logger = logging.getLogger(__name__)
 
 
-def pytest_addoption(parser: pytest.Parser):
-    parser.addoption(
-        "--model",
-        action="store",
-    )
-
-    parser.addoption(
-        "--keep-models",
-        action="store_true",
-        default=False,
-        help="keep temporarily-created models",
-    )
-    parser.addoption(
-        "--charm-file",
-        action="store",
-    )
-    parser.addoption(
-        "--ubuntu-insights-server-image",
-        action="store",
-    )
-
-
 @pytest.fixture(scope="session")
 def metadata():
     """Pytest fixture to load charm metadata."""

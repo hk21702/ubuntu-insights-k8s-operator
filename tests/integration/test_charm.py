@@ -12,7 +12,7 @@ from tests.integration.helpers import ExampleReport
 logger = logging.getLogger(__name__)
 
 
-def test_active(app: str, juju: jubilant.Juju):
+def test_active(juju: jubilant.Juju, app: str):
     """Check that the charm is active.
 
     Assume that the charm has been deployed and is running.

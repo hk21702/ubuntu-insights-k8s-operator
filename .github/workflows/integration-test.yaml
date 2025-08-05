@@ -11,3 +11,4 @@ jobs:
       juju-channel: 3.6/stable
       channel: 1.32-strict/stable
       runs-on: ubuntu-22.04 # Use Ubuntu 22.04 for the test environment as it is what is expected for deployment
+      modules: '["test_charm", "test_removal"]'
