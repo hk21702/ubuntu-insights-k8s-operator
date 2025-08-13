@@ -15,6 +15,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseCreatedEvent,
     DatabaseEndpointsChangedEvent,
 )
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
 
@@ -107,6 +108,8 @@ class UbuntuInsightsCharm(ops.CharmBase):
             self.on.reports_cache_storage_detaching, self._on_storage_state_changed
         )
 
+        # COS lite
+        self._logging = LogForwarder(self, relation_name="logging")
         self._metrics_endpoint = MetricsEndpointProvider(
             self,
             jobs=[
@@ -123,6 +126,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
             ],
         )
 
+        # Rolling restarts
         self.restart_manager = RollingOpsManager(
             charm=self, relation="restart", callback=self._on_restart
         )
