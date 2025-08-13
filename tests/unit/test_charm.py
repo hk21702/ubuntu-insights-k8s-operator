@@ -95,17 +95,20 @@ def test_config_changed():
             "web-apps": "linux",
             "ingest-apps": "linux, windows",
             "ingest-legacy": False,
+            "debug": True,
         },
         leader=True,
     )
     state_out = ctx.run(ctx.on.config_changed(), state_in)
-    assert (
-        "--listen-port=8081"
-        in state_out.get_container(container.name)
+    out_command = (
+        state_out.get_container(container.name)
         .layers[container.name]
         .services[ServiceType.WEB.value]
         .command
     )
+
+    assert "--listen-port=8081" in out_command
+    assert "-vv" in out_command
 
     container_fs = state_out.get_container(container.name).get_filesystem(ctx)
     ingest_daemon_cfg_file = container_fs / INGEST_DYNAMIC_PATH[1:]

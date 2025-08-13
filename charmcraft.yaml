@@ -78,6 +78,10 @@ config:
       type: boolean
       default: true
       description: Whenever or not to run database migrations on startup using the migration scripts prepackaged with the image.
+    debug:
+      type: boolean
+      default: false
+      description: Set the log levels of the services to DEBUG (default WARN).
 
 requires:
   database:

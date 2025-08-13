@@ -307,6 +307,8 @@ class UbuntuInsightsCharm(ops.CharmBase):
     @property
     def _pebble_layer(self) -> ops.pebble.Layer:
         """Pebble layer for the web service."""
+        debug = "-vv" if self.config["debug"] else ""
+
         web_command = " ".join(
             [
                 "/bin/ubuntu-insights-web-service",
@@ -314,8 +316,9 @@ class UbuntuInsightsCharm(ops.CharmBase):
                 f"--daemon-config={WEB_DYNAMIC_PATH}",
                 f"--reports-dir={self.report_cache_path}",
                 f"--metrics-port={WEB_PROMETHEUS_PORT}",
+                debug,
             ]
-        )
+        ).strip()
 
         ingest_command = " ".join(
             [
@@ -323,8 +326,9 @@ class UbuntuInsightsCharm(ops.CharmBase):
                 f"--daemon-config={INGEST_DYNAMIC_PATH}",
                 f"--reports-dir={self.report_cache_path}",
                 f"--metrics-port={INGEST_PROMETHEUS_PORT}",
+                debug,
             ]
-        )
+        ).strip()
 
         # If the reports cache path is unavailable, disable the web and ingest services.
         # If the database relation is not ready, disable the ingest service.
