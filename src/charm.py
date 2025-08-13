@@ -15,6 +15,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseCreatedEvent,
     DatabaseEndpointsChangedEvent,
 )
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
 
 from database import DatabaseHandler
@@ -36,6 +37,9 @@ REPORTS_CACHE_NAME = "reports-cache"
 WEB_DYNAMIC_PATH = "/etc/ubuntu-insights-service/web-live-config.json"
 INGEST_DYNAMIC_PATH = "/etc/ubuntu-insights-service/ingest-live-config.json"
 INGEST_DATABASE_NAME = "insights"
+
+WEB_PROMETHEUS_PORT = 2112
+INGEST_PROMETHEUS_PORT = 2113
 
 DATABASE_RELATION_NAME = "database"
 
@@ -101,6 +105,22 @@ class UbuntuInsightsCharm(ops.CharmBase):
         )
         self.framework.observe(
             self.on.reports_cache_storage_detaching, self._on_storage_state_changed
+        )
+
+        self._metrics_endpoint = MetricsEndpointProvider(
+            self,
+            jobs=[
+                {
+                    "static_configs": [
+                        {
+                            "targets": [
+                                f"*:{WEB_PROMETHEUS_PORT}",
+                                f"*:{INGEST_PROMETHEUS_PORT}",
+                            ]
+                        }
+                    ]
+                }
+            ],
         )
 
         self.restart_manager = RollingOpsManager(
@@ -285,6 +305,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
                 f"--listen-port={self.config['web-port']}",
                 f"--daemon-config={WEB_DYNAMIC_PATH}",
                 f"--reports-dir={self.report_cache_path}",
+                f"--metrics-port={WEB_PROMETHEUS_PORT}",
             ]
         )
 
@@ -293,6 +314,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
                 "/bin/ubuntu-insights-ingest-service",
                 f"--daemon-config={INGEST_DYNAMIC_PATH}",
                 f"--reports-dir={self.report_cache_path}",
+                f"--metrics-port={INGEST_PROMETHEUS_PORT}",
             ]
         )
 

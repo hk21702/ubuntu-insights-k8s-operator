@@ -10,7 +10,14 @@ from enum import Enum
 import ops
 from ops import testing
 
-from charm import UbuntuInsightsCharm
+from charm import (
+    CONTAINER_NAME,
+    INGEST_DYNAMIC_PATH,
+    INGEST_PROMETHEUS_PORT,
+    WEB_DYNAMIC_PATH,
+    WEB_PROMETHEUS_PORT,
+    UbuntuInsightsCharm,
+)
 
 
 class ServiceType(Enum):
@@ -19,10 +26,6 @@ class ServiceType(Enum):
     WEB = "web-service"
     INGEST = "ingest-service"
 
-
-CONTAINER_NAME = "ubuntu-insights-server"
-WEB_DYNAMIC_PATH = "/etc/ubuntu-insights-service/web-live-config.json"
-INGEST_DYNAMIC_PATH = "/etc/ubuntu-insights-service/ingest-live-config.json"
 
 REPORTS_CACHE_MOUNT_LOCATION = "/var/lib/ubuntu-insights/"
 
@@ -45,7 +48,8 @@ def test_pebble_layer():
                     f"/bin/ubuntu-insights-web-service "
                     f"--listen-port=8080 "
                     f"--daemon-config={WEB_DYNAMIC_PATH} "
-                    f"--reports-dir={REPORTS_CACHE_MOUNT_LOCATION}"
+                    f"--reports-dir={REPORTS_CACHE_MOUNT_LOCATION} "
+                    f"--metrics-port={WEB_PROMETHEUS_PORT}"
                 ),
                 "startup": "enabled",
             },
@@ -55,7 +59,8 @@ def test_pebble_layer():
                 "command": (
                     f"/bin/ubuntu-insights-ingest-service "
                     f"--daemon-config={INGEST_DYNAMIC_PATH} "
-                    f"--reports-dir={REPORTS_CACHE_MOUNT_LOCATION}"
+                    f"--reports-dir={REPORTS_CACHE_MOUNT_LOCATION} "
+                    f"--metrics-port={INGEST_PROMETHEUS_PORT}"
                 ),
                 "startup": "disabled",
             },
@@ -199,7 +204,9 @@ def test_storage_attached():
         ServiceType.WEB.value
     ].command == (
         f"/bin/ubuntu-insights-web-service --listen-port=8080 "
-        f"--daemon-config={WEB_DYNAMIC_PATH} --reports-dir={REPORTS_CACHE_MOUNT_LOCATION}"
+        f"--daemon-config={WEB_DYNAMIC_PATH} "
+        f"--reports-dir={REPORTS_CACHE_MOUNT_LOCATION} "
+        f"--metrics-port={WEB_PROMETHEUS_PORT}"
     )
 
 
