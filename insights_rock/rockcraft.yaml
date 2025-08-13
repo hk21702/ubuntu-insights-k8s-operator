@@ -2,7 +2,7 @@ name: ubuntu-insights-server
 
 base: bare
 build-base: ubuntu@24.04
-version: "0.3.0"
+version: "0.5.0"
 license: GPL-3.0
 summary: Service for ubuntu-insights
 description: |
@@ -18,7 +18,7 @@ parts:
     web-service:
         plugin: go
         source: https://github.com/ubuntu/ubuntu-insights.git
-        source-tag: v0.3.0
+        source-tag: v0.5.0
         source-subdir: server/cmd/web-service
         stage-packages:
             - base-files
@@ -40,7 +40,7 @@ parts:
     ingest-service:
         plugin: go
         source: https://github.com/ubuntu/ubuntu-insights.git
-        source-tag: v0.3.0
+        source-tag: v0.5.0
         source-subdir: server/cmd/ingest-service
         stage-packages:
             - base-files
@@ -62,7 +62,7 @@ parts:
     migrations:
         plugin: dump
         source: https://github.com/ubuntu/ubuntu-insights.git
-        source-tag: v0.3.0
+        source-tag: v0.5.0
         source-subdir: server/migrations
         organize:
             "*": usr/share/insights/migrations/
