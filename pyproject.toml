@@ -4,7 +4,7 @@ dynamic = ["version"]
 requires-python = ">=3.10"
 
 # Required group: these are all dependencies required to run the charm.
-dependencies = ["ops~=3.0", "requests"]
+dependencies = ["ops~=3.0", "requests", "cosl"]
 
 # Required group: these are all dependencies required to run all the charm's tests.
 [dependency-groups]
@@ -52,4 +52,10 @@ skip = "build,lib,venv,icon.svg,.tox,.git,.mypy_cache,.ruff_cache,.coverage"
 [tool.pyright]
 include = ["src/"]
 extraPaths = ["lib", "./src"]
-ignore = ["lib/charms/data_platform_libs/", "lib/charms/rolling_ops/"]
+ignore = [
+    "lib/charms/data_platform_libs/",
+    "lib/charms/rolling_ops/",
+    "lib/charms/grafana_k8s/",
+    "lib/charms/loki_k8s/",
+    "lib/charms/prometheus_k8s/",
+]

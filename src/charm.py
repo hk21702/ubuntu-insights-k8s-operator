@@ -15,6 +15,9 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseCreatedEvent,
     DatabaseEndpointsChangedEvent,
 )
+from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
 
 from database import DatabaseHandler
@@ -36,6 +39,9 @@ REPORTS_CACHE_NAME = "reports-cache"
 WEB_DYNAMIC_PATH = "/etc/ubuntu-insights-service/web-live-config.json"
 INGEST_DYNAMIC_PATH = "/etc/ubuntu-insights-service/ingest-live-config.json"
 INGEST_DATABASE_NAME = "insights"
+
+WEB_PROMETHEUS_PORT = 2112
+INGEST_PROMETHEUS_PORT = 2113
 
 DATABASE_RELATION_NAME = "database"
 
@@ -103,6 +109,28 @@ class UbuntuInsightsCharm(ops.CharmBase):
             self.on.reports_cache_storage_detaching, self._on_storage_state_changed
         )
 
+        # COS lite
+        self._logging = LogForwarder(self, relation_name="logging")
+        self._metrics_endpoint = MetricsEndpointProvider(
+            self,
+            jobs=[
+                {
+                    "static_configs": [
+                        {
+                            "targets": [
+                                f"*:{WEB_PROMETHEUS_PORT}",
+                                f"*:{INGEST_PROMETHEUS_PORT}",
+                            ]
+                        }
+                    ]
+                }
+            ],
+        )
+        self._grafana_dashboards = GrafanaDashboardProvider(
+            self, relation_name="grafana-dashboard"
+        )
+
+        # Rolling restarts
         self.restart_manager = RollingOpsManager(
             charm=self, relation="restart", callback=self._on_restart
         )
@@ -279,22 +307,28 @@ class UbuntuInsightsCharm(ops.CharmBase):
     @property
     def _pebble_layer(self) -> ops.pebble.Layer:
         """Pebble layer for the web service."""
+        debug = "-vv" if self.config["debug"] else ""
+
         web_command = " ".join(
             [
                 "/bin/ubuntu-insights-web-service",
                 f"--listen-port={self.config['web-port']}",
                 f"--daemon-config={WEB_DYNAMIC_PATH}",
                 f"--reports-dir={self.report_cache_path}",
+                f"--metrics-port={WEB_PROMETHEUS_PORT}",
+                debug,
             ]
-        )
+        ).strip()
 
         ingest_command = " ".join(
             [
                 "/bin/ubuntu-insights-ingest-service",
                 f"--daemon-config={INGEST_DYNAMIC_PATH}",
                 f"--reports-dir={self.report_cache_path}",
+                f"--metrics-port={INGEST_PROMETHEUS_PORT}",
+                debug,
             ]
-        )
+        ).strip()
 
         # If the reports cache path is unavailable, disable the web and ingest services.
         # If the database relation is not ready, disable the ingest service.
