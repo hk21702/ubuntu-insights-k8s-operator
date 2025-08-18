@@ -34,6 +34,8 @@ charm-libs:
     version: "1"
   - lib: prometheus_k8s.prometheus_scrape
     version: "0"
+  - lib: nginx_ingress_integrator.ingress
+    version: "0"
 
 parts:
   charm:
@@ -74,10 +76,19 @@ config:
       default: true
       description: Whether the ingest service should accept legacy reports from older clients such as Ubuntu Report. If true, a preset list of applications will be appended to apps list for the ingest service.
 
+    # General configuration
+    external-hostname:
+      description: |
+        The external hostname to use. Will default to the name of the deployed
+        application.
+      default: ""
+      type: string
+
     migrate:
       type: boolean
       default: true
       description: Whenever or not to run database migrations on startup using the migration scripts prepackaged with the image.
+
     debug:
       type: boolean
       default: false
@@ -89,6 +100,10 @@ requires:
     limit: 1
   logging:
     interface: loki_push_api
+    optional: true
+  ingress:
+    interface: ingress
+    limit: 1
     optional: true
 
 provides:

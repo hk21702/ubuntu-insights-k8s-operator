@@ -58,4 +58,5 @@ ignore = [
     "lib/charms/grafana_k8s/",
     "lib/charms/loki_k8s/",
     "lib/charms/prometheus_k8s/",
+    "lib/charms/nginx_ingress_integrator/",
 ]

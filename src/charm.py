@@ -17,6 +17,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
 )
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
+from charms.nginx_ingress_integrator.v0.ingress import IngressRequires
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
 
@@ -109,6 +110,15 @@ class UbuntuInsightsCharm(ops.CharmBase):
             self.on.reports_cache_storage_detaching, self._on_storage_state_changed
         )
 
+        self.ingress = IngressRequires(
+            self,
+            {
+                "service-hostname": self.config["external-hostname"] or self.app.name,
+                "service-name": self.app.name,
+                "service-port": self.config["web-port"],
+            },
+        )
+
         # COS lite
         self._logging = LogForwarder(self, relation_name="logging")
         self._metrics_endpoint = MetricsEndpointProvider(
@@ -191,6 +201,15 @@ class UbuntuInsightsCharm(ops.CharmBase):
 
         # Expose web service port
         self.unit.set_ports(typing.cast(int, self.config["web-port"]))
+
+        # Update ingress config
+        self.ingress.update_config(
+            {
+                "service-hostname": self.config["external-hostname"] or self.app.name,
+                "service-name": self.app.name,
+                "service-port": self.config["web-port"],
+            },
+        )
 
         # Restart the services to apply the new configurations.
         self._update_layer_and_replan()
