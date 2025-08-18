@@ -88,10 +88,29 @@ class UbuntuInsightsCharm(ops.CharmBase):
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.collect_unit_status, self._on_collect_status)
 
+        self._init_relations()
+        self._init_events()
+        self._init_cos()
+
+        # Rolling restarts
+        self.restart_manager = RollingOpsManager(
+            charm=self, relation="restart", callback=self._on_restart
+        )
+
+    def _init_relations(self):
         # The 'relation_name' comes from the 'charmcraft.yaml file'.
         self._database = DatabaseHandler(self, DATABASE_RELATION_NAME)
 
-        # See https://charmhub.io/data-platform-libs/libraries/data_interfaces
+        self._ingress = IngressRequires(
+            self,
+            {
+                "service-hostname": self.config["external-hostname"] or self.app.name,
+                "service-name": self.app.name,
+                "service-port": self.config["web-port"],
+            },
+        )
+
+    def _init_events(self):
         self.framework.observe(
             self._database.database.on.database_created, self._on_database_created
         )
@@ -110,16 +129,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
             self.on.reports_cache_storage_detaching, self._on_storage_state_changed
         )
 
-        self.ingress = IngressRequires(
-            self,
-            {
-                "service-hostname": self.config["external-hostname"] or self.app.name,
-                "service-name": self.app.name,
-                "service-port": self.config["web-port"],
-            },
-        )
-
-        # COS lite
+    def _init_cos(self):
         self._logging = LogForwarder(self, relation_name="logging")
         self._metrics_endpoint = MetricsEndpointProvider(
             self,
@@ -138,11 +148,6 @@ class UbuntuInsightsCharm(ops.CharmBase):
         )
         self._grafana_dashboards = GrafanaDashboardProvider(
             self, relation_name="grafana-dashboard"
-        )
-
-        # Rolling restarts
-        self.restart_manager = RollingOpsManager(
-            charm=self, relation="restart", callback=self._on_restart
         )
 
     def _on_collect_status(self, event: ops.CollectStatusEvent) -> None:
@@ -203,7 +208,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
         self.unit.set_ports(typing.cast(int, self.config["web-port"]))
 
         # Update ingress config
-        self.ingress.update_config(
+        self._ingress.update_config(
             {
                 "service-hostname": self.config["external-hostname"] or self.app.name,
                 "service-name": self.app.name,
