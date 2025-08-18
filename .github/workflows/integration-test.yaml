@@ -10,5 +10,7 @@ jobs:
     with:
       juju-channel: 3.6/stable
       channel: 1.32-strict/stable
-      runs-on: ubuntu-22.04 # Use Ubuntu 22.04 for the test environment as it is what is expected for deployment
+      self-hosted-runner: true
+      self-hosted-runner-image: jammy # Use Ubuntu 22.04 for the test environment as it is what is expected for deployment
+      self-hosted-runner-label: large
       modules: '["test_charm", "test_removal"]'
