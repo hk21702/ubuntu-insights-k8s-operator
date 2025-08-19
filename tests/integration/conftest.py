@@ -25,7 +25,7 @@ def juju(request: pytest.FixtureRequest):
 
     model = request.config.getoption("--model")
     if model:
-        juju = jubilant.Juju(model=model)
+        juju = jubilant.Juju(model=model, wait_timeout=10 * 60)
         yield juju
         show_debug_log(juju)
         return
@@ -83,7 +83,7 @@ def app(juju: jubilant.Juju, metadata: Dict[str, Any], charm_file: str, image: s
     juju.deploy(
         charm="postgresql-k8s",
         channel="14/stable",
-        revision=400,
+        revision=495,
         trust=True,
         config={"profile": "testing"},
     )
@@ -100,7 +100,10 @@ def app(juju: jubilant.Juju, metadata: Dict[str, Any], charm_file: str, image: s
     )
 
     # Wait for PostgreSQL to be ready
-    juju.wait(lambda status: jubilant.all_active(status, "postgresql-k8s"))
+    juju.wait(
+        lambda status: jubilant.all_active(status, "postgresql-k8s"),
+        timeout=20 * 60,
+    )
 
     status = juju.status()
     assert status.apps[app_name].units[app_name + "/0"].is_blocked
