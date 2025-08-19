@@ -25,7 +25,7 @@ def juju(request: pytest.FixtureRequest):
 
     model = request.config.getoption("--model")
     if model:
-        juju = jubilant.Juju(model=model)
+        juju = jubilant.Juju(model=model, wait_timeout=10 * 60)
         yield juju
         show_debug_log(juju)
         return
