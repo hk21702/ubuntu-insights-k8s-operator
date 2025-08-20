@@ -34,7 +34,7 @@ charm-libs:
     version: "1"
   - lib: prometheus_k8s.prometheus_scrape
     version: "0"
-  - lib: nginx_ingress_integrator.ingress
+  - lib: nginx_ingress_integrator.nginx_route
     version: "0"
 
 parts:
@@ -101,8 +101,8 @@ requires:
   logging:
     interface: loki_push_api
     optional: true
-  ingress:
-    interface: ingress
+  nginx-route:
+    interface: nginx-route
     limit: 1
     optional: true
 
