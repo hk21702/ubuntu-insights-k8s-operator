@@ -17,7 +17,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
 )
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
-from charms.nginx_ingress_integrator.v0.ingress import IngressRequires
+from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
 
@@ -101,14 +101,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
         # The 'relation_name' comes from the 'charmcraft.yaml file'.
         self._database = DatabaseHandler(self, DATABASE_RELATION_NAME)
 
-        self._ingress = IngressRequires(
-            self,
-            {
-                "service-hostname": self.config["external-hostname"] or self.app.name,
-                "service-name": self.app.name,
-                "service-port": self.config["web-port"],
-            },
-        )
+        self._require_nginx_route()
 
     def _init_events(self):
         self.framework.observe(
@@ -207,14 +200,8 @@ class UbuntuInsightsCharm(ops.CharmBase):
         # Expose web service port
         self.unit.set_ports(typing.cast(int, self.config["web-port"]))
 
-        # Update ingress config
-        self._ingress.update_config(
-            {
-                "service-hostname": self.config["external-hostname"] or self.app.name,
-                "service-name": self.app.name,
-                "service-port": self.config["web-port"],
-            },
-        )
+        # Update nginx route config
+        self._require_nginx_route()
 
         # Restart the services to apply the new configurations.
         self._update_layer_and_replan()
@@ -285,6 +272,15 @@ class UbuntuInsightsCharm(ops.CharmBase):
             return
 
         self.unit.set_workload_version(self.version)
+
+    def _require_nginx_route(self) -> None:
+        require_nginx_route(
+            charm=self,
+            service_hostname=str(self.config["external-hostname"]) or self.app.name,
+            service_name=self.app.name,
+            service_port=int(self.config["web-port"]),
+            max_body_size=1,
+        )
 
     def _render_dynamic_config(self, service_type: ServiceType) -> None:
         """Write dynamic configuration file for the specified service.
