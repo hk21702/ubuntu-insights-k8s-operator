@@ -5,10 +5,13 @@ on:
     branches:
       - main
   pull_request:
+  schedule:
+    # Weekly scan
+    - cron: "20 4 * * 1"
 
 jobs:
-  tox-test:
-    runs-on: ubuntu-22.04 # Use Ubuntu 22.04 for the test environment as it is what is expected for deployment
+  tests:
+    runs-on: [self-hosted, amd64, tiobe, noble]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -23,8 +26,10 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Install tox
-        run: uv tool install --python-preference only-managed tox --with tox-uv
+      - name: Install dependencies
+        run: |
+          uv tool install --python-preference only-managed tox --with tox-uv
+          uv sync --locked --all-extras --dev # Needed for TiCS
 
       - name: Run tests
         run: |
@@ -42,3 +47,23 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: "TiCS: quality gate"
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: tiobe/tics-github-action@v3
+        with:
+          mode: client
+          project: ubuntu-insights-k8s-operator
+          viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+          ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
+          installTics: true
+
+      - name: "TiCS: QServer"
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'schedule' }} # Only push to main and scheduled
+        uses: tiobe/tics-github-action@v3
+        with:
+          mode: qserver
+          project: ubuntu-insights-k8s-operator
+          viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+          ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
+          installTics: true
