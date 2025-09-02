@@ -327,7 +327,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
     @property
     def _pebble_layer(self) -> ops.pebble.Layer:
         """Pebble layer for the web service."""
-        debug = "-vv" if self.config["debug"] else ""
+        debug = "-vv" if self.config["debug"] else "-v"
 
         web_command = " ".join(
             [
