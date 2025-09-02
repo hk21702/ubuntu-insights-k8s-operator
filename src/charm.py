@@ -332,8 +332,8 @@ class UbuntuInsightsCharm(ops.CharmBase):
         web_command = " ".join(
             [
                 "/bin/ubuntu-insights-web-service",
+                WEB_DYNAMIC_PATH,
                 f"--listen-port={self.config['web-port']}",
-                f"--daemon-config={WEB_DYNAMIC_PATH}",
                 f"--reports-dir={self.report_cache_path}",
                 f"--metrics-port={WEB_PROMETHEUS_PORT}",
                 debug,
@@ -343,7 +343,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
         ingest_command = " ".join(
             [
                 "/bin/ubuntu-insights-ingest-service",
-                f"--daemon-config={INGEST_DYNAMIC_PATH}",
+                INGEST_DYNAMIC_PATH,
                 f"--reports-dir={self.report_cache_path}",
                 f"--metrics-port={INGEST_PROMETHEUS_PORT}",
                 debug,
