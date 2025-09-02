@@ -46,10 +46,12 @@ def test_pebble_layer():
                 "summary": "web service",
                 "command": (
                     f"/bin/ubuntu-insights-web-service "
+                    f"{WEB_DYNAMIC_PATH} "
                     f"--listen-port=8080 "
-                    f"--daemon-config={WEB_DYNAMIC_PATH} "
                     f"--reports-dir={REPORTS_CACHE_MOUNT_LOCATION} "
-                    f"--metrics-port={WEB_PROMETHEUS_PORT}"
+                    f"--metrics-port={WEB_PROMETHEUS_PORT} "
+                    "--json-logs "
+                    "-v"
                 ),
                 "startup": "enabled",
             },
@@ -58,9 +60,11 @@ def test_pebble_layer():
                 "summary": "ingest service",
                 "command": (
                     f"/bin/ubuntu-insights-ingest-service "
-                    f"--daemon-config={INGEST_DYNAMIC_PATH} "
+                    f"{INGEST_DYNAMIC_PATH} "
                     f"--reports-dir={REPORTS_CACHE_MOUNT_LOCATION} "
-                    f"--metrics-port={INGEST_PROMETHEUS_PORT}"
+                    f"--metrics-port={INGEST_PROMETHEUS_PORT} "
+                    f"--json-logs "
+                    "-v"
                 ),
                 "startup": "disabled",
             },
@@ -206,10 +210,13 @@ def test_storage_attached():
     assert state_out.get_container(container.name).layers[container.name].services[
         ServiceType.WEB.value
     ].command == (
-        f"/bin/ubuntu-insights-web-service --listen-port=8080 "
-        f"--daemon-config={WEB_DYNAMIC_PATH} "
+        f"/bin/ubuntu-insights-web-service "
+        f"{WEB_DYNAMIC_PATH} "
+        "--listen-port=8080 "
         f"--reports-dir={REPORTS_CACHE_MOUNT_LOCATION} "
-        f"--metrics-port={WEB_PROMETHEUS_PORT}"
+        f"--metrics-port={WEB_PROMETHEUS_PORT} "
+        f"--json-logs "
+        "-v"
     )
 
 

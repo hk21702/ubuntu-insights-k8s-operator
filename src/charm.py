@@ -336,6 +336,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
                 f"--listen-port={self.config['web-port']}",
                 f"--reports-dir={self.report_cache_path}",
                 f"--metrics-port={WEB_PROMETHEUS_PORT}",
+                "--json-logs",
                 debug,
             ]
         ).strip()
@@ -346,6 +347,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
                 INGEST_DYNAMIC_PATH,
                 f"--reports-dir={self.report_cache_path}",
                 f"--metrics-port={INGEST_PROMETHEUS_PORT}",
+                "--json-logs",
                 debug,
             ]
         ).strip()
