@@ -327,15 +327,16 @@ class UbuntuInsightsCharm(ops.CharmBase):
     @property
     def _pebble_layer(self) -> ops.pebble.Layer:
         """Pebble layer for the web service."""
-        debug = "-vv" if self.config["debug"] else ""
+        debug = "-vv" if self.config["debug"] else "-v"
 
         web_command = " ".join(
             [
                 "/bin/ubuntu-insights-web-service",
+                WEB_DYNAMIC_PATH,
                 f"--listen-port={self.config['web-port']}",
-                f"--daemon-config={WEB_DYNAMIC_PATH}",
                 f"--reports-dir={self.report_cache_path}",
                 f"--metrics-port={WEB_PROMETHEUS_PORT}",
+                "--json-logs",
                 debug,
             ]
         ).strip()
@@ -343,9 +344,10 @@ class UbuntuInsightsCharm(ops.CharmBase):
         ingest_command = " ".join(
             [
                 "/bin/ubuntu-insights-ingest-service",
-                f"--daemon-config={INGEST_DYNAMIC_PATH}",
+                INGEST_DYNAMIC_PATH,
                 f"--reports-dir={self.report_cache_path}",
                 f"--metrics-port={INGEST_PROMETHEUS_PORT}",
+                "--json-logs",
                 debug,
             ]
         ).strip()
