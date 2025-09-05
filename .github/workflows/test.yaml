@@ -4,13 +4,14 @@ on:
   push:
     branches:
       - main
-    tags:
-      - "*"
   pull_request:
+  schedule:
+    # Weekly scan
+    - cron: "20 4 * * 1"
 
 jobs:
-  tox-test:
-    runs-on: ubuntu-22.04 # Use Ubuntu 22.04 for the test environment as it is what is expected for deployment
+  tests:
+    runs-on: [self-hosted, amd64, tiobe, noble]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -18,19 +19,51 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version-file: "pyproject.toml"
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install tox
+          uv tool install --python-preference only-managed tox --with tox-uv
+          uv sync --locked --all-extras --dev # Needed for TiCS
 
       - name: Run tests
         run: |
           tox
+          mkdir coverage
+          mv coverage.xml ./coverage/
 
-      - name: Upload coverage report
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-${{ github.job }}-artifacts-${{ github.run_attempt }}
+          path: ./coverage
+
+      - name: Upload to codecov
         uses: codecov/codecov-action@v5
         with:
-          files: .coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: "TiCS: quality gate"
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: tiobe/tics-github-action@v3
+        with:
+          mode: client
+          project: ubuntu-insights-k8s-operator
+          viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+          ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
+          installTics: true
+
+      - name: "TiCS: QServer"
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'schedule' }} # Only push to main and scheduled
+        uses: tiobe/tics-github-action@v3
+        with:
+          mode: qserver
+          project: ubuntu-insights-k8s-operator
+          viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+          ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
+          installTics: true
