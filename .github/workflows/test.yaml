@@ -11,13 +11,14 @@ on:
 
 jobs:
   tests:
-    runs-on: [self-hosted, amd64, tiobe, noble]
+    name: "Run QA tests"
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version-file: "pyproject.toml"
 
@@ -26,30 +27,15 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Determine TiCS run conditions
-        id: tics-condition
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "tics_mode=client" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.event_name }}" == "schedule" ]]; then
-            echo "tics_mode=qserver" >> $GITHUB_OUTPUT
-          fi
-
       - name: Install dependencies
         run: |
           uv tool install --python-preference only-managed tox --with tox-uv
-          uv sync --locked --all-extras --dev # Needed for TiCS
-
-      - name: Install dependencies (QServer)
-        if: steps.tics-condition.outputs.tics_mode == 'qserver'
-        run: |
-          uv pip install flake8 Pylint
 
       - name: Run tests
         run: |
           tox
           mkdir coverage
-          mv coverage.xml ./coverage/
+          mv coverage.xml coverage/Cobertura.xml
 
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
@@ -61,6 +47,41 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  tics:
+    name: "Run TiCS"
+    needs: tests
+    runs-on: [self-hosted, amd64, tiobe, noble]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          uv sync --locked --all-extras --dev
+
+      - name: Down coverage artifacts
+        uses: actions/download-artifact@v5
+        with:
+          merge-multiple: true # There is only one artifact, but this removes the subfolder
+
+      - name: Determine TiCS run conditions
+        id: tics-condition
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "tics_mode=client" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "tics_mode=qserver" >> $GITHUB_OUTPUT
+          fi
 
       - name: "TiCS"
         if: ${{ steps.tics-condition.outputs.tics_mode != '' }}
