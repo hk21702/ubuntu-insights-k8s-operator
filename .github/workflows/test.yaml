@@ -34,12 +34,14 @@ jobs:
       - name: Run tests
         run: |
           tox
+          mkdir coverage
+          mv coverage.xml coverage/Cobertura.xml
 
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
         with:
           name: tests-${{ github.job }}-artifacts-${{ github.run_attempt }}
-          path: coverage.xml
+          path: ./coverage
 
       - name: Upload to codecov
         uses: codecov/codecov-action@v5
@@ -71,11 +73,6 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           merge-multiple: true # There is only one artifact, but this removes the subfolder
-
-      - name: Prep coverage reports
-        shell: bash
-        run: |
-          mv coverage.xml Cobertura.xml
 
       - name: Determine TiCS run conditions
         id: tics-condition
