@@ -314,6 +314,23 @@ class UbuntuInsightsCharm(ops.CharmBase):
         except (ops.pebble.APIError, ops.pebble.ConnectionError) as e:
             logger.error("Failed to write config file %s: %s", config_path, e)
 
+    def _is_config_rendered(self, service_type: ServiceType) -> bool:
+        """Check if the configuration is ready for the specified service.
+
+        Args:
+            service_type: ServiceType enum specifying which service to check.
+
+        Returns:
+            True if the configuration is ready, False otherwise.
+        """
+        match service_type:
+            case ServiceType.WEB:
+                config_path = WEB_DYNAMIC_PATH
+            case ServiceType.INGEST:
+                config_path = INGEST_DYNAMIC_PATH
+
+        return self.container.can_connect() and self.container.exists(config_path)
+
     def _on_storage_state_changed(self, event: ops.StorageEvent) -> None:
         if self.report_cache_path:
             self._on_config_changed(event)
@@ -354,6 +371,22 @@ class UbuntuInsightsCharm(ops.CharmBase):
 
         # If the reports cache path is unavailable, disable the web and ingest services.
         # If the database relation is not ready, disable the ingest service.
+        web_startup = ingest_startup = "enabled"
+
+        if not self._is_config_rendered(ServiceType.WEB) or not self.report_cache_path:
+            web_startup = "disabled"
+            logger.warning("Web service config has not been rendered, web service is disabled.")
+
+        if not self._is_config_rendered(ServiceType.INGEST) or not self.report_cache_path:
+            ingest_startup = "disabled"
+            logger.warning(
+                "Ingest service config has not been rendered, ingest service is disabled."
+            )
+
+        if not self._database.is_relation_ready():
+            ingest_startup = "disabled"
+            logger.warning("Database relation is not ready, ingest service is disabled.")
+
         web_startup = "enabled" if self.report_cache_path else "disabled"
         ingest_startup = (
             "enabled"
