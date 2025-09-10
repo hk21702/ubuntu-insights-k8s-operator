@@ -26,10 +26,25 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Determine TiCS run conditions
+        id: tics-condition
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "tics_mode=client" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "tics_mode=qserver" >> $GITHUB_OUTPUT
+          fi
+
       - name: Install dependencies
         run: |
           uv tool install --python-preference only-managed tox --with tox-uv
           uv sync --locked --all-extras --dev # Needed for TiCS
+
+      - name: Install dependencies (QServer)
+        if: steps.tics-condition.outputs.tics_mode == 'qserver'
+        run: |
+          set -e
+          uv add --frozen flake8 Pylint
 
       - name: Run tests
         run: |
@@ -48,21 +63,11 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: "TiCS: quality gate"
-        if: ${{ github.event_name == 'pull_request' }}
+      - name: "TiCS"
+        if: ${{ steps.tics-condition.outputs.tics_mode != '' }}
         uses: tiobe/tics-github-action@v3
         with:
-          mode: client
-          project: ubuntu-insights-k8s-operator
-          viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
-          ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
-          installTics: true
-
-      - name: "TiCS: QServer"
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'schedule' }} # Only push to main and scheduled
-        uses: tiobe/tics-github-action@v3
-        with:
-          mode: qserver
+          mode: ${{ steps.tics-condition.outputs.tics_mode }}
           project: ubuntu-insights-k8s-operator
           viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
           ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
