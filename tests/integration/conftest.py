@@ -105,8 +105,11 @@ def app(juju: jubilant.Juju, metadata: Dict[str, Any], charm_file: str, image: s
         timeout=20 * 60,
     )
 
-    status = juju.status()
-    assert status.apps[app_name].units[app_name + "/0"].is_blocked
+    juju.wait(
+        lambda status: jubilant.all_blocked(status, app_name)
+        and jubilant.all_agents_idle(status, app_name)
+    )
+
     juju.integrate(app_name, "postgresql-k8s:database")
     juju.wait(jubilant.all_active)
 
