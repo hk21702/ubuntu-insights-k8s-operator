@@ -55,11 +55,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version-file: "pyproject.toml"
-
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v6
         with:
@@ -68,6 +63,9 @@ jobs:
       - name: Install dependencies
         run: |
           uv sync --locked --all-extras --dev
+          source .venv/bin/activate
+          uv pip install flake8 pylint
+          echo "PATH=$PATH" >> "$GITHUB_ENV"
 
       - name: Down coverage artifacts
         uses: actions/download-artifact@v5
