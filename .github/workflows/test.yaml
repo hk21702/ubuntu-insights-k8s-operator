@@ -62,7 +62,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync --locked --all-extras --dev
+          uv sync --locked --all-extras --dev --all-groups
           source .venv/bin/activate
           uv pip install flake8 pylint
           echo "PATH=$PATH" >> "$GITHUB_ENV"
