@@ -1,0 +1,79 @@
+name: TiCS Scan
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    # Weekly scan
+    - cron: "20 4 * * 1"
+
+jobs:
+  generate-coverage:
+    name: "Generate coverage report"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          uv tool install --python-preference only-managed tox --with tox-uv
+
+      - name: Run unit tests
+        run: |
+          tox -e unit
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tics-${{ github.job }}-artifacts-${{ github.run_attempt }}
+          path: coverage.xml
+
+  tics:
+    name: "Run TiCS QServer"
+    needs: generate-coverage
+    runs-on: [self-hosted, amd64, tiobe, noble]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          uv sync --locked --all-extras --dev --all-groups
+          source .venv/bin/activate
+          uv pip install flake8 pylint
+          echo "PATH=$PATH" >> "$GITHUB_ENV"
+
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v5
+        with:
+          merge-multiple: true # There is only one artifact, but this removes the subfolder
+
+      - name: Prepare coverage report for TiCS
+        run: |
+          mkdir -p coverage
+          mv coverage.xml coverage/Cobertura.xml
+
+      - name: "TiCS"
+        uses: tiobe/tics-github-action@v3
+        with:
+          mode: qserver
+          project: ubuntu-insights-k8s-operator
+          viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+          ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
+          installTics: true
