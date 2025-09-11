@@ -34,19 +34,19 @@ jobs:
       - name: Run tests
         run: |
           tox
-          mkdir coverage
-          mv coverage.xml coverage/Cobertura.xml
 
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
         with:
           name: tests-${{ github.job }}-artifacts-${{ github.run_attempt }}
-          path: ./coverage
+          path: coverage.xml
 
       - name: Upload to codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          disable_search: true
 
   tics:
     name: "Run TiCS"
@@ -54,11 +54,6 @@ jobs:
     runs-on: [self-hosted, amd64, tiobe, noble]
     steps:
       - uses: actions/checkout@v5
-
-      - name: Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version-file: "pyproject.toml"
 
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v6
@@ -68,11 +63,19 @@ jobs:
       - name: Install dependencies
         run: |
           uv sync --locked --all-extras --dev
+          source .venv/bin/activate
+          uv pip install flake8 pylint
+          echo "PATH=$PATH" >> "$GITHUB_ENV"
 
       - name: Down coverage artifacts
         uses: actions/download-artifact@v5
         with:
           merge-multiple: true # There is only one artifact, but this removes the subfolder
+
+      - name: Prepare coverage report for TiCS
+        run: |
+          mkdir -p coverage
+          mv coverage.xml coverage/Cobertura.xml
 
       - name: Determine TiCS run conditions
         id: tics-condition
