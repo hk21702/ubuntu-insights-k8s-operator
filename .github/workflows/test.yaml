@@ -51,6 +51,7 @@ jobs:
   tics:
     name: "Run TiCS"
     needs: tests
+    if: ${{ github.event_name != 'pull_request' }} # Disabled while we determine if we want to use client mode for PRs
     runs-on: [self-hosted, amd64, tiobe, noble]
     steps:
       - uses: actions/checkout@v5
