@@ -37,8 +37,8 @@ APP_NAME = "ubuntu-insights"
 CONTAINER_NAME = "ubuntu-insights-server"
 REPORTS_CACHE_NAME = "reports-cache"
 
-WEB_DYNAMIC_PATH = "/etc/ubuntu-insights-service/web-live-config.json"
-INGEST_DYNAMIC_PATH = "/etc/ubuntu-insights-service/ingest-live-config.json"
+WEB_ALLOWLIST_PATH = "/etc/ubuntu-insights-service/web-allowlist.json"
+INGEST_ALLOWLIST_PATH = "/etc/ubuntu-insights-service/ingest-allowlist.json"
 INGEST_DATABASE_NAME = "insights"
 
 WEB_PROMETHEUS_PORT = 2112
@@ -189,9 +189,9 @@ class UbuntuInsightsCharm(ops.CharmBase):
         self.web_apps = [item.strip() for item in str(self.config["web-apps"]).split(",")]
         self.ingest_apps = [item.strip() for item in str(self.config["ingest-apps"]).split(",")]
 
-        # Write dynamic config files for web and ingest services.
-        self._render_dynamic_config(ServiceType.WEB)
-        self._render_dynamic_config(ServiceType.INGEST)
+        # Write allowlist config files for web and ingest services.
+        self._render_allowlist(ServiceType.WEB)
+        self._render_allowlist(ServiceType.INGEST)
 
         # Migrate the database if the database relation is created.
         if self.config["migrate"]:
@@ -282,18 +282,18 @@ class UbuntuInsightsCharm(ops.CharmBase):
             max_body_size=1,
         )
 
-    def _render_dynamic_config(self, service_type: ServiceType) -> None:
-        """Write dynamic configuration file for the specified service.
+    def _render_allowlist(self, service_type: ServiceType) -> None:
+        """Write the allowlist configuration file for the specified service.
 
         Args:
             service_type: ServiceType enum specifying which service config to write.
         """
         if service_type == ServiceType.WEB:
-            config_path = WEB_DYNAMIC_PATH
+            config_path = WEB_ALLOWLIST_PATH
             legacy = self.config["web-legacy"]
             allowlist = self.web_apps
         elif service_type == ServiceType.INGEST:
-            config_path = INGEST_DYNAMIC_PATH
+            config_path = INGEST_ALLOWLIST_PATH
             allowlist = self.ingest_apps
             legacy = self.config["ingest-legacy"]
 
@@ -303,16 +303,33 @@ class UbuntuInsightsCharm(ops.CharmBase):
                 f"ubuntu-report/ubuntu/desktop/{version}" for version in LEGACY_VERSIONS
             )
 
-        config_data = {"allowList": allowlist}
+        allowlist_data = {"allowList": allowlist}
 
         try:
-            config_json = json.dumps(config_data, indent=2)
-            self.container.push(config_path, config_json, make_dirs=True)
+            allowlist_json = json.dumps(allowlist_data, indent=2)
+            self.container.push(config_path, allowlist_json, make_dirs=True)
             logger.info(
-                "Written dynamic config for %s service to %s", service_type.value, config_path
+                "Written allowlist config for %s service to %s", service_type.value, config_path
             )
         except (ops.pebble.APIError, ops.pebble.ConnectionError) as e:
             logger.error("Failed to write config file %s: %s", config_path, e)
+
+    def _is_allowlist_rendered(self, service_type: ServiceType) -> bool:
+        """Check if the allowlist configuration is ready for the specified service.
+
+        Args:
+            service_type: ServiceType enum specifying which service to check.
+
+        Returns:
+            True if the allowlist configuration is ready, False otherwise.
+        """
+        match service_type:
+            case ServiceType.WEB:
+                config_path = WEB_ALLOWLIST_PATH
+            case ServiceType.INGEST:
+                config_path = INGEST_ALLOWLIST_PATH
+
+        return self.container.can_connect() and self.container.exists(config_path)
 
     def _on_storage_state_changed(self, event: ops.StorageEvent) -> None:
         if self.report_cache_path:
@@ -332,7 +349,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
         web_command = " ".join(
             [
                 "/bin/ubuntu-insights-web-service",
-                WEB_DYNAMIC_PATH,
+                WEB_ALLOWLIST_PATH,
                 f"--listen-port={self.config['web-port']}",
                 f"--reports-dir={self.report_cache_path}",
                 f"--metrics-port={WEB_PROMETHEUS_PORT}",
@@ -344,7 +361,7 @@ class UbuntuInsightsCharm(ops.CharmBase):
         ingest_command = " ".join(
             [
                 "/bin/ubuntu-insights-ingest-service",
-                INGEST_DYNAMIC_PATH,
+                INGEST_ALLOWLIST_PATH,
                 f"--reports-dir={self.report_cache_path}",
                 f"--metrics-port={INGEST_PROMETHEUS_PORT}",
                 "--json-logs",
@@ -354,6 +371,22 @@ class UbuntuInsightsCharm(ops.CharmBase):
 
         # If the reports cache path is unavailable, disable the web and ingest services.
         # If the database relation is not ready, disable the ingest service.
+        web_startup = ingest_startup = "enabled"
+
+        if not self._is_allowlist_rendered(ServiceType.WEB) or not self.report_cache_path:
+            web_startup = "disabled"
+            logger.warning("Web service allowlist has not been rendered, web service is disabled.")
+
+        if not self._is_allowlist_rendered(ServiceType.INGEST) or not self.report_cache_path:
+            ingest_startup = "disabled"
+            logger.warning(
+                "Ingest service allowlist has not been rendered, ingest service is disabled."
+            )
+
+        if not self._database.is_relation_ready():
+            ingest_startup = "disabled"
+            logger.warning("Database relation is not ready, ingest service is disabled.")
+
         web_startup = "enabled" if self.report_cache_path else "disabled"
         ingest_startup = (
             "enabled"

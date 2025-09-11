@@ -12,9 +12,9 @@ from ops import testing
 
 from charm import (
     CONTAINER_NAME,
-    INGEST_DYNAMIC_PATH,
+    INGEST_ALLOWLIST_PATH,
     INGEST_PROMETHEUS_PORT,
-    WEB_DYNAMIC_PATH,
+    WEB_ALLOWLIST_PATH,
     WEB_PROMETHEUS_PORT,
     UbuntuInsightsCharm,
 )
@@ -46,7 +46,7 @@ def test_pebble_layer():
                 "summary": "web service",
                 "command": (
                     f"/bin/ubuntu-insights-web-service "
-                    f"{WEB_DYNAMIC_PATH} "
+                    f"{WEB_ALLOWLIST_PATH} "
                     f"--listen-port=8080 "
                     f"--reports-dir={REPORTS_CACHE_MOUNT_LOCATION} "
                     f"--metrics-port={WEB_PROMETHEUS_PORT} "
@@ -60,7 +60,7 @@ def test_pebble_layer():
                 "summary": "ingest service",
                 "command": (
                     f"/bin/ubuntu-insights-ingest-service "
-                    f"{INGEST_DYNAMIC_PATH} "
+                    f"{INGEST_ALLOWLIST_PATH} "
                     f"--reports-dir={REPORTS_CACHE_MOUNT_LOCATION} "
                     f"--metrics-port={INGEST_PROMETHEUS_PORT} "
                     f"--json-logs "
@@ -115,8 +115,8 @@ def test_config_changed():
     assert "-vv" in out_command
 
     container_fs = state_out.get_container(container.name).get_filesystem(ctx)
-    ingest_daemon_cfg_file = container_fs / INGEST_DYNAMIC_PATH[1:]
-    web_daemon_cfg_file = container_fs / WEB_DYNAMIC_PATH[1:]
+    ingest_daemon_cfg_file = container_fs / INGEST_ALLOWLIST_PATH[1:]
+    web_daemon_cfg_file = container_fs / WEB_ALLOWLIST_PATH[1:]
     ingest_daemon_config = json.loads(ingest_daemon_cfg_file.read_text())
     web_daemon_config = json.loads(web_daemon_cfg_file.read_text())
 
@@ -211,7 +211,7 @@ def test_storage_attached():
         ServiceType.WEB.value
     ].command == (
         f"/bin/ubuntu-insights-web-service "
-        f"{WEB_DYNAMIC_PATH} "
+        f"{WEB_ALLOWLIST_PATH} "
         "--listen-port=8080 "
         f"--reports-dir={REPORTS_CACHE_MOUNT_LOCATION} "
         f"--metrics-port={WEB_PROMETHEUS_PORT} "
