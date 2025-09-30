@@ -57,15 +57,13 @@ In general, we follow the ["fork-and-pull" Git workflow](https://github.com/susa
 1. Push changes to your fork
 1. Open a PR in our repository and follow the PR template so that we can efficiently review the changes.
 
-> PRs will trigger unit and integration tests with and without race detection, linting and formatting validations, static and security checks, freshness of generated files verification. All the tests must pass before merging in main branch.
-
-Once merged to the main branch, `po` files and any documentation change will be automatically updated. Those are thus not necessary in the pull request itself to minimize diff review.
+> PRs will trigger unit and integration tests, linting and formatting validations, static and security checks. All the tests must pass before merging in main branch.
 
 ## Contributing to the code
 
 ### Required dependencies
 
-To contribute to this charm, you will need a working (development setup)[https://documentation.ubuntu.com/juju/latest/howto/manage-your-deployment/index.html].
+To contribute to this charm, you will need a working [development setup](https://documentation.ubuntu.com/juju/latest/howto/manage-your-deployment/index.html).
 
 The code for this charm can be downloaded as follows:
 
@@ -73,31 +71,67 @@ The code for this charm can be downloaded as follows:
 git clone https://github.com/canonical/ubuntu-insights-k8s-operator
 ```
 
-You can create an environment for development with `python3-venv`:
+You can create an environment for development with [`uv`](https://docs.astral.sh/uv/getting-started/installation/):
 
 ```bash
-sudo apt install python3-venv
-python3 -m venv venv
-source venv/bin/activate
+uv sync --group test
 ```
 
 ### Building the rock and charm
 
-TODO
+Use [Rockcraft](https://documentation.ubuntu.com/rockcraft/en/latest/) to create an OCI image for the Ubuntu Insights services, and then upload the image to the MicroK8s registry which stores OCI archives so they can be downloaded and deployed.
+
+Enable the MicroK8s registry:
+
+```
+sudo microk8s enable registry
+```
+
+The following commands, replacing `version` with the rock version, packs the OCI image and pushes it to the MicroK8s registry:
+
+```bash
+cd insights_rock
+rockcraft pack
+rockcraft.skopeo --insecure-policy copy --dest-tls-verify=false oci-archive:ubuntu-insights-server_<version>_amd64.rock
+ docker://localhost:32000/ubuntu-insights-server:latest
+```
+
+Then, from the root of the git repository, build the charm
+
+```bash
+charmcraft pack
+```
 
 ### About the test suite
 
 The project includes a comprehensive test suite made of unit and integration tests. All the tests must pass before the review is considered. If you have troubles with the test suite, feel free to mention it on your PR description.
 
-TODO
+Tox is used for managing tests environments.
+
+```bash
+uv tool install --python-preference only-managed tox --with tox-uv
+```
 
 The test suite must pass before merging the PR to our main branch. Any new feature, change or fix must be covered by corresponding tests.
 
-### Code style
+#### Basic Tests
 
-This project follows the TODO code-style. For more informative information about the code style in use, please check:
+There are some pre-configured environments that can be used for linting and formatting code when you're preparing contributions to the charm:
 
-- For go: <https://google.github.io/styleguide/go/>
+- `tox`: Executes all the basic checks and tests (`lint`, `unit`, and `static`).
+- `tox -e fmt`: Runs formatting using `ruff`.
+- `tox -e lint`: Runs a range of static code analysis to check the code.
+- `tox -e static`: Runs other checks such as `pyright`.
+
+#### Integration Tests
+
+The integration tests require for the OCI image to be registered to a registry.
+
+If you registered the OCI image created by Rockcraft to the MicroK8s registry, use:
+
+```
+tox -e integration -- --ubuntu-insights-server-image=localhost:32000/ubuntu-insights-server:latest
+```
 
 ## Contributor License Agreement
 
@@ -105,7 +139,7 @@ It is required to sign the [Contributor License Agreement](https://ubuntu.com/le
 
 An automated test is executed on PRs to check if it has been accepted.
 
-This project is covered by [THIS LICENSE](LICENSE).
+This project is covered by [GPL-3.0](LICENSE).
 
 ## Getting Help
 
