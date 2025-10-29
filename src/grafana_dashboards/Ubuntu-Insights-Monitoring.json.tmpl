@@ -24,8 +24,8 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
+  "id": 19,
   "links": [],
-  "liveNow": false,
   "panels": [
     {
       "datasource": {
@@ -43,8 +43,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -63,6 +62,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -70,18 +70,20 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "9.5.3",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${prometheusds}"
           },
-          "editorMode": "builder",
+          "editorMode": "code",
           "exemplar": true,
-          "expr": "round(sum by() (increase(http_mux_requests_total{juju_charm=\"ubuntu-insights-server-k8s\", juju_unit=~\"$juju_unit\", juju_model=~\"$juju_model\", juju_application=~\"$juju_application\", juju_model_uuid=~\"$juju_model_uuid\"}[24h])), 1)",
+          "expr": "round(sum(increase(http_mux_requests_total{juju_charm=\"ubuntu-insights-server-k8s\"}[24h])), 1)",
           "legendFormat": "Total Requests",
           "range": true,
           "refId": "A"
@@ -91,9 +93,9 @@
             "type": "prometheus",
             "uid": "${prometheusds}"
           },
-          "editorMode": "builder",
+          "editorMode": "code",
           "exemplar": true,
-          "expr": "round(sum(increase(ingest_processor_files_processed_total{juju_charm=\"ubuntu-insights-server-k8s\", juju_unit=~\"$juju_unit\", juju_model=~\"$juju_model\", juju_application=~\"$juju_application\", juju_model_uuid=~\"$juju_model_uuid\", result=\"success\"}[24h])), 1)",
+          "expr": "round(sum(increase(ingest_processor_files_processed_total{juju_charm=\"ubuntu-insights-server-k8s\"}[24h])), 1)",
           "hide": false,
           "legendFormat": "Successful Uploads",
           "range": true,
@@ -129,12 +131,14 @@
             "seriesBy": "last"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
             "axisSoftMax": 1000,
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "scheme",
@@ -143,6 +147,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineStyle": {
               "fill": "solid"
@@ -169,8 +174,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -180,7 +184,7 @@
       },
       "gridPos": {
         "h": 10,
-        "w": 4,
+        "w": 12,
         "x": 0,
         "y": 9
       },
@@ -196,10 +200,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -208,7 +214,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "avg (sum by (juju_unit)(ingest_processor_cache_size_bytes{juju_application=~\"$juju_application\", juju_model=~\"$juju_model\", juju_model_uuid=~\"$juju_model_uuid\", juju_unit=~\"$juju_unit\"})) / 1e6",
+          "expr": "avg(sum by(juju_unit) (ingest_processor_cache_size_bytes{juju_charm=\"ubuntu-insights-server-k8s\"})) / 1e+06",
           "hide": false,
           "instant": true,
           "legendFormat": "Total",
@@ -222,7 +228,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "avg by (app) (\n  sum by (juju_unit, app) (\n    ingest_processor_cache_size_bytes{\n      juju_application=~\"$juju_application\",\n      juju_model=~\"$juju_model\",\n      juju_model_uuid=~\"$juju_model_uuid\",\n      juju_unit=~\"$juju_unit\"\n    }\n  )\n) / 1e6\n",
+          "expr": "avg by(app) (sum by(juju_unit, app) (ingest_processor_cache_size_bytes{juju_charm=\"ubuntu-insights-server-k8s\"})) / 1e+06",
           "hide": false,
           "instant": false,
           "legendFormat": "{{app}}",
@@ -258,8 +264,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           }
@@ -318,13 +323,37 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Source"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 285
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Juju unit"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 265
+              }
+            ]
           }
         ]
       },
       "gridPos": {
         "h": 10,
-        "w": 9,
-        "x": 4,
+        "w": 12,
+        "x": 12,
         "y": 9
       },
       "id": 13,
@@ -345,7 +374,7 @@
         "showHeader": true,
         "sortBy": []
       },
-      "pluginVersion": "9.5.3",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -354,7 +383,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum by (juju_unit, app) (ingest_processor_cache_size_bytes{juju_charm=\"ubuntu-insights-server-k8s\", juju_application=~\"$juju_application\", juju_model=~\"$juju_model\", juju_model_uuid=~\"$juju_model_uuid\", juju_unit=~\"$juju_unit\"}) / 1e6",
+          "expr": "sum by(juju_unit, app) (ingest_processor_cache_size_bytes{juju_charm=\"ubuntu-insights-server-k8s\"}) / 1e+06",
           "format": "table",
           "instant": true,
           "legendFormat": "{{app}} - a",
@@ -368,7 +397,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum by (juju_unit, app) (ingest_processor_cache_size{juju_charm=\"ubuntu-insights-server-k8s\", juju_application=~\"$juju_application\", juju_model=~\"$juju_model\", juju_model_uuid=~\"$juju_model_uuid\", juju_unit=~\"$juju_unit\"})",
+          "expr": "sum by(juju_unit, app) (ingest_processor_cache_size{juju_charm=\"ubuntu-insights-server-k8s\"})",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -416,50 +445,44 @@
         "type": "loki",
         "uid": "${lokids}"
       },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
       "gridPos": {
-        "h": 10,
-        "w": 11,
-        "x": 13,
-        "y": 9
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 19
       },
       "id": 4,
       "options": {
-        "dedupStrategy": "signature",
+        "dedupStrategy": "none",
+        "enableInfiniteScrolling": false,
         "enableLogDetails": true,
-        "prettifyLogMessage": false,
-        "showCommonLabels": false,
-        "showLabels": true,
+        "showControls": true,
         "showTime": false,
-        "sortOrder": "Ascending",
+        "sortOrder": "Descending",
+        "syntaxHighlighting": true,
         "wrapLogMessage": false
       },
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
             "type": "loki",
             "uid": "${lokids}"
           },
+          "direction": "backward",
           "editorMode": "code",
-          "expr": "{charm=\"ubuntu-insights-server-k8s\", pebble_service=\"web-service\", juju_application=~\"$juju_application\", juju_model=~\"$juju_model\", juju_model_uuid=~\"$juju_model_uuid\", juju_unit=~\"$juju_unit\"} |= \"\"",
-          "legendFormat": "web-service",
-          "queryType": "range",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "${lokids}"
-          },
-          "editorMode": "code",
-          "expr": "{charm=\"ubuntu-insights-server-k8s\", pebble_service=\"ingest-service\", juju_application=~\"$juju_application\", juju_model=~\"$juju_model\", juju_model_uuid=~\"$juju_model_uuid\", juju_unit=~\"$juju_unit\"} |= \"\"",
+          "expr": "{juju_application=\"ubuntu-insights-server-k8s\"}",
           "hide": false,
-          "legendFormat": "ingest-service",
           "queryType": "range",
-          "refId": "B"
+          "refId": "C"
         }
       ],
       "title": "Ubuntu Insights Logs",
-      "type": "logs"
+      "type": "logs-new"
     },
     {
       "collapsed": false,
@@ -467,7 +490,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 28
       },
       "id": 7,
       "panels": [],
@@ -479,7 +502,7 @@
         "type": "prometheus",
         "uid": "${prometheusds}"
       },
-      "description": "Web service request counts.",
+      "description": "Web service request counts over the selected range.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -491,8 +514,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "#ccccdc",
-                "value": null
+                "color": "#ccccdc"
               }
             ]
           },
@@ -504,7 +526,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 20
+        "y": 29
       },
       "id": 14,
       "options": {
@@ -512,6 +534,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -519,9 +542,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "value_and_name"
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
       },
-      "pluginVersion": "9.5.3",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -530,9 +555,10 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "round(sum by(path) (increase(http_endpoint_requests_total{juju_charm=\"ubuntu-insights-server-k8s\", juju_unit=~\"$juju_unit\", juju_model=~\"$juju_model\", juju_application=~\"$juju_application\", juju_model_uuid=~\"$juju_model_uuid\"}[24h])), 1)",
+          "expr": "round(sum by(path) (increase(http_endpoint_requests_total{juju_charm=\"ubuntu-insights-server-k8s\"}[$__range])), 1)",
           "format": "time_series",
-          "interval": "",
+          "hide": false,
+          "interval": "2m",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -546,17 +572,20 @@
         "type": "prometheus",
         "uid": "${prometheusds}"
       },
+      "description": "The 95th percentile processing duration.",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -565,6 +594,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -586,8 +616,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -603,7 +632,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 20
+        "y": 29
       },
       "id": 2,
       "options": {
@@ -616,10 +645,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -627,50 +658,14 @@
             "uid": "${prometheusds}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum by(le, path) (rate(http_endpoint_request_duration_seconds_bucket{juju_application=~\"$juju_application\", juju_model=~\"$juju_model\", juju_model_uuid=~\"$juju_model_uuid\", juju_unit=~\"$juju_unit\"}[2m])))",
-          "hide": true,
-          "interval": "",
-          "legendFormat": "p99: {{path}}",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${prometheusds}"
-          },
-          "editorMode": "code",
           "exemplar": false,
-          "expr": "histogram_quantile(0.95, sum by(le, path) (rate(http_endpoint_request_duration_seconds_bucket{juju_application=~\"$juju_application\",juju_model=~\"$juju_model\",juju_model_uuid=~\"$juju_model_uuid\",juju_unit=~\"$juju_unit\"}[2m])))",
+          "expr": "histogram_quantile(0.95, sum by(le, path) (rate(http_endpoint_request_duration_seconds_bucket{juju_charm=\"ubuntu-insights-server-k8s\"}[$__rate_interval])))",
           "format": "time_series",
           "hide": false,
+          "interval": "30s",
           "legendFormat": "{{path}}",
           "range": true,
           "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${prometheusds}"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.9, sum by(le, path) (rate(http_endpoint_request_duration_seconds_bucket{juju_application=~\"$juju_application\",juju_model=~\"$juju_model\",juju_model_uuid=~\"$juju_model_uuid\",juju_unit=~\"$juju_unit\"}[2m])))",
-          "hide": true,
-          "legendFormat": "p90: {{path}}",
-          "range": true,
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${prometheusds}"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.75, sum by(le, path) (rate(http_endpoint_request_duration_seconds_bucket{juju_application=~\"$juju_application\",juju_model=~\"$juju_model\",juju_model_uuid=~\"$juju_model_uuid\",juju_unit=~\"$juju_unit\"}[2m])))",
-          "hide": true,
-          "legendFormat": "p75: {{path}}",
-          "range": true,
-          "refId": "D"
         }
       ],
       "title": "P95 Request Duration",
@@ -689,11 +684,13 @@
             "seriesBy": "last"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -702,6 +699,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineStyle": {
               "fill": "solid"
@@ -724,12 +722,12 @@
           "mappings": [],
           "max": 1,
           "min": 0,
+          "noValue": "0%",
           "thresholds": {
             "mode": "percentage",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -741,7 +739,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 28
+        "y": 37
       },
       "id": 18,
       "options": {
@@ -756,19 +754,22 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${prometheusds}"
           },
-          "editorMode": "builder",
-          "expr": "sum (rate(http_mux_requests_total{juju_charm=\"ubuntu-insights-server-k8s\", juju_unit=~\"$juju_unit\", juju_model=~\"$juju_model\", juju_application=~\"$juju_application\", juju_model_uuid=~\"$juju_model_uuid\", code!~\"2.*\"}[5m])) / sum (rate(http_mux_requests_total{juju_charm=\"ubuntu-insights-server-k8s\", juju_unit=~\"$juju_unit\", juju_model=~\"$juju_model\", juju_application=~\"$juju_application\", juju_model_uuid=~\"$juju_model_uuid\"}[5m])) ",
+          "editorMode": "code",
+          "expr": "sum(increase(http_mux_requests_total{code!~\"2.*\",juju_charm=\"ubuntu-insights-server-k8s\"}[$__rate_interval]) OR (http_endpoint_requests_total{juju_charm=\"ubuntu-insights-server-k8s\"} * 0)) / sum(increase(http_mux_requests_total{juju_charm=\"ubuntu-insights-server-k8s\"}[$__rate_interval]))",
           "hide": false,
+          "interval": "30s",
           "legendFormat": "All",
           "range": true,
           "refId": "B"
@@ -778,15 +779,15 @@
             "type": "prometheus",
             "uid": "${prometheusds}"
           },
-          "editorMode": "builder",
-          "expr": "sum by(path) (rate(http_endpoint_requests_total{juju_charm=\"ubuntu-insights-server-k8s\", juju_unit=~\"$juju_unit\", juju_model=~\"$juju_model\", juju_application=~\"$juju_application\", juju_model_uuid=~\"$juju_model_uuid\", code!~\"2.*\"}[5m])) / sum by(path) (rate(http_endpoint_requests_total{juju_charm=\"ubuntu-insights-server-k8s\", juju_unit=~\"$juju_unit\", juju_model=~\"$juju_model\", juju_application=~\"$juju_application\", juju_model_uuid=~\"$juju_model_uuid\"}[5m])) ",
+          "editorMode": "code",
+          "expr": "sum by(path) (increase(http_endpoint_requests_total{code!~\"2.*\",juju_charm=\"ubuntu-insights-server-k8s\"}[$__rate_interval]) OR (http_endpoint_requests_total{juju_charm=\"ubuntu-insights-server-k8s\"} * 0)) / sum by(path) (increase(http_endpoint_requests_total{juju_charm=\"ubuntu-insights-server-k8s\"}[$__rate_interval]))",
+          "interval": "30s",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
       "title": "Request Error Rate by Endpoint",
-      "transformations": [],
       "type": "timeseries"
     },
     {
@@ -801,11 +802,13 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 25,
             "gradientMode": "hue",
@@ -814,6 +817,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -835,8 +839,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -851,7 +854,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 28
+        "y": 37
       },
       "id": 19,
       "options": {
@@ -866,10 +869,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -877,7 +882,8 @@
             "uid": "${prometheusds}"
           },
           "editorMode": "code",
-          "expr": "sum by (code) (increase(http_mux_requests_total{juju_charm=\"ubuntu-insights-server-k8s\", juju_unit=~\"$juju_unit\", juju_model=~\"$juju_model\", juju_application=~\"$juju_application\", juju_model_uuid=~\"$juju_model_uuid\"}[5m]))",
+          "expr": "sum by(code) (increase(http_mux_requests_total{juju_charm=\"ubuntu-insights-server-k8s\"}[$__rate_interval]))",
+          "interval": "30s",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -892,199 +898,592 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 46
       },
       "id": 8,
       "panels": [],
       "title": "Ingest Service",
       "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "description": "Ingest service amount processed over the selected range.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#ccccdc"
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 47
+      },
+      "id": 23,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "round(sum by(app) (increase(ingest_processor_files_processed_total{juju_charm=\"ubuntu-insights-server-k8s\"}[$__range])), 1)",
+          "format": "time_series",
+          "interval": "2m",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Amount Processed",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "description": "The 95th percentile process duration.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "{app=\"windows\", instance=\"stg-ubuntu-insights_8a703e15-cec4-4a0c-8776-de7560c4ce46_ubuntu-insights-server-k8s_ubuntu-insights-server-k8s/2\", job=\"juju_stg-ubuntu-insights_8a703e15_ubuntu-insights-server-k8s_prometheus_scrape-2\", juju_application=\"ubuntu-insights-server-k8s\", juju_charm=\"ubuntu-insights-server-k8s\", juju_model=\"stg-ubuntu-insights\", juju_model_uuid=\"8a703e15-cec4-4a0c-8776-de7560c4ce46\", juju_unit=\"ubuntu-insights-server-k8s/2\"}"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 47
+      },
+      "id": 21,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "histogram_quantile(0.95,sum by (le, app) (rate(ingest_processor_process_duration_seconds_bucket{juju_charm=\"ubuntu-insights-server-k8s\"}[$__rate_interval])))",
+          "format": "time_series",
+          "hide": false,
+          "interval": "30s",
+          "legendFormat": "{{path}}",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "P95 Process Duration",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "description": "The processing error rate over the selected interval.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd",
+            "seriesBy": "last"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "max": 1,
+          "min": 0,
+          "noValue": "0%",
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 55
+      },
+      "id": 24,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "mean",
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "code",
+          "expr": "sum(increase(ingest_processor_files_processed_total{result!=\"success\",juju_charm=\"ubuntu-insights-server-k8s\"}[$__rate_interval]) or on() vector(0)) / sum(increase(ingest_processor_files_processed_total{juju_charm=\"ubuntu-insights-server-k8s\"}[$__rate_interval]))",
+          "hide": false,
+          "instant": false,
+          "interval": "30s",
+          "legendFormat": "All",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (app)(increase(ingest_processor_files_processed_total{result!=\"success\",juju_charm=\"ubuntu-insights-server-k8s\"}[$__rate_interval]) OR (ingest_processor_files_processed_total{juju_charm=\"ubuntu-insights-server-k8s\"} * 0)) / sum by (app)(increase(ingest_processor_files_processed_total{juju_charm=\"ubuntu-insights-server-k8s\"}[$__rate_interval]))",
+          "hide": false,
+          "interval": "30s",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Processing Error Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "description": "Ingest service process results over the selected interval. ",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 25,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 55
+      },
+      "id": 22,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "mean",
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "code",
+          "expr": "sum by(result) (increase(ingest_processor_files_processed_total{juju_charm=\"ubuntu-insights-server-k8s\"}[$__rate_interval]))",
+          "interval": "30s",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Process Results",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "description": "Ingest service processor errors over the selected interval.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 25,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 64
+      },
+      "id": 26,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "mean",
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "code",
+          "expr": "sum (increase(ingest_processor_errors_total{juju_charm=\"ubuntu-insights-server-k8s\"}[$__interval]) or on() vector(0))",
+          "hide": false,
+          "instant": false,
+          "interval": "30s",
+          "legendFormat": "All",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "code",
+          "expr": "sum by(app) (increase(ingest_processor_errors_total{juju_charm=\"ubuntu-insights-server-k8s\"}[$__interval]) or (ingest_processor_files_processed_total{juju_charm=\"ubuntu-insights-server-k8s\"} * 0)) ",
+          "interval": "30s",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Processor Errors",
+      "type": "timeseries"
     }
   ],
+  "preload": false,
   "refresh": "10s",
-  "schemaVersion": 38,
-  "style": "dark",
-  "tags": [
-    "charm: ubuntu-insights-server-k8s"
-  ],
+  "schemaVersion": 41,
+  "tags": [],
   "templating": {
     "list": [
       {
         "current": {
-          "selected": true,
-          "text": [
-            "All"
-          ],
+          "text": "All",
           "value": [
             "$__all"
           ]
         },
-        "hide": 0,
         "includeAll": true,
         "label": "Loki datasource",
         "multi": true,
         "name": "lokids",
         "options": [],
         "query": "loki",
-        "queryValue": "",
         "refresh": 1,
         "regex": "",
-        "skipUrlSync": false,
         "type": "datasource"
       },
       {
         "current": {
-          "selected": true,
-          "text": [
-            "All"
-          ],
+          "text": "All",
           "value": [
             "$__all"
           ]
         },
-        "hide": 0,
         "includeAll": true,
         "label": "Prometheus datasource",
         "multi": true,
         "name": "prometheusds",
         "options": [],
         "query": "prometheus",
-        "queryValue": "",
         "refresh": 1,
         "regex": "",
-        "skipUrlSync": false,
         "type": "datasource"
-      },
-      {
-        "allValue": ".*",
-        "current": {
-          "selected": true,
-          "text": [
-            "All"
-          ],
-          "value": [
-            "$__all"
-          ]
-        },
-        "datasource": {
-          "uid": "${prometheusds}"
-        },
-        "definition": "label_values(up{juju_model=~\"$juju_model\",juju_model_uuid=~\"$juju_model_uuid\",juju_application=~\"$juju_application\"},juju_unit)",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Juju unit",
-        "multi": true,
-        "name": "juju_unit",
-        "options": [],
-        "query": {
-          "query": "label_values(up{juju_model=~\"$juju_model\",juju_model_uuid=~\"$juju_model_uuid\",juju_application=~\"$juju_application\"},juju_unit)",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      },
-      {
-        "allValue": ".*",
-        "current": {
-          "selected": true,
-          "text": [
-            "All"
-          ],
-          "value": [
-            "$__all"
-          ]
-        },
-        "datasource": {
-          "uid": "${prometheusds}"
-        },
-        "definition": "label_values(up{juju_model=~\"$juju_model\",juju_model_uuid=~\"$juju_model_uuid\"},juju_application)",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Juju application",
-        "multi": true,
-        "name": "juju_application",
-        "options": [],
-        "query": {
-          "query": "label_values(up{juju_model=~\"$juju_model\",juju_model_uuid=~\"$juju_model_uuid\"},juju_application)",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      },
-      {
-        "allValue": ".*",
-        "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "uid": "${prometheusds}"
-        },
-        "definition": "label_values(up{juju_model=~\"$juju_model\"},juju_model_uuid)",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Juju model uuid",
-        "multi": true,
-        "name": "juju_model_uuid",
-        "options": [],
-        "query": {
-          "query": "label_values(up{juju_model=~\"$juju_model\"},juju_model_uuid)",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      },
-      {
-        "allValue": ".*",
-        "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "uid": "${prometheusds}"
-        },
-        "definition": "label_values(up,juju_model)",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Juju model",
-        "multi": true,
-        "name": "juju_model",
-        "options": [],
-        "query": {
-          "query": "label_values(up,juju_model)",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
       }
     ]
   },
@@ -1096,6 +1495,5 @@
   "timezone": "",
   "title": "Ubuntu Insights Monitoring",
   "uid": "428b1a0c5cdaeca6fb21843f5e02036b3f282a44",
-  "version": 1,
-  "weekStart": ""
+  "version": 2
 }
